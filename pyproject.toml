@@ -1,0 +1,94 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scitex-notebook"
+version = "0.1.0"
+description = "Jupyter notebook verification, compilation, and DAG-based conversion for the SciTeX ecosystem"
+readme = "README.md"
+license = "AGPL-3.0-only"
+requires-python = ">=3.10"
+authors = [
+    { name = "Yusuke Watanabe", email = "ywatanabe@scitex.ai" },
+]
+keywords = [
+    "jupyter",
+    "notebook",
+    "reproducibility",
+    "dag",
+    "scitex",
+    "science",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "click>=8.0",
+    "scitex-clew>=0.1.0",
+]
+
+[project.optional-dependencies]
+linter = ["scitex-linter>=0.1.0"]
+mcp = ["mcp>=1.0"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff",
+]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+    "myst-parser>=2.0",
+    "sphinx-copybutton>=0.5",
+    "sphinx-autodoc-typehints>=1.25",
+]
+all = [
+    "scitex-notebook[linter,mcp,dev,docs]",
+]
+
+[project.scripts]
+scitex-notebook = "scitex_notebook._cli:main"
+
+[project.entry-points."scitex_dev.docs"]
+scitex_notebook = "scitex_notebook"
+
+[project.entry-points."scitex_dev.skills"]
+scitex_notebook = "scitex_notebook"
+
+[project.urls]
+Homepage = "https://github.com/ywatanabe1989/scitex-notebook"
+Repository = "https://github.com/ywatanabe1989/scitex-notebook"
+Documentation = "https://scitex-notebook.readthedocs.io"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scitex_notebook"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=scitex_notebook --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.coverage.run]
+source = ["scitex_notebook"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+fail_under = 50

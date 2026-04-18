@@ -1,0 +1,121 @@
+# SciTeX Notebook (`scitex-notebook`)
+
+<p align="center"><b>Jupyter notebook verification, compilation, and DAG-based conversion</b></p>
+
+<p align="center">
+  <a href="https://badge.fury.io/py/scitex-notebook"><img src="https://badge.fury.io/py/scitex-notebook.svg" alt="PyPI version"></a>
+  <a href="https://scitex-notebook.readthedocs.io/"><img src="https://readthedocs.org/projects/scitex-notebook/badge/?version=latest" alt="Documentation"></a>
+  <a href="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/test.yml"><img src="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
+</p>
+
+---
+
+## Problem
+
+Jupyter notebooks can be executed in any cell order. The on-disk cell sequence
+often has no relationship to the actual execution dependency graph. Traditional
+notebook-to-script converters assume linear order and produce broken scripts.
+
+## Solution
+
+`scitex-notebook` records actual execution order via
+[`scitex-clew`](https://github.com/ywatanabe1989/scitex-clew) timestamps, then
+reconstructs the dependency DAG afterward. *"Do what you want, organize later."*
+
+- **Verify** clew sessions for a notebook (reproducibility check)
+- **Check** for `scitex.io` calls missing `@scitex.session` decoration
+- **Compile** execution history into a Mermaid DAG or topologically-sorted `.py`
+- **Convert** `.ipynb` to a SciTeX Python script (per-cell or unified `main()`)
+
+## Installation
+
+Requires Python >= 3.10.
+
+```bash
+pip install scitex-notebook
+```
+
+Optional extras:
+
+```bash
+pip install "scitex-notebook[mcp]"     # MCP server for AI agents
+pip install "scitex-notebook[linter]"  # IO-call conversion via scitex-linter
+pip install "scitex-notebook[all]"     # everything
+```
+
+## Quickstart
+
+<details>
+<summary><strong>Python API</strong></summary>
+
+```python
+import scitex_notebook as notebook
+
+cells    = notebook.parse_notebook("experiment.ipynb")
+issues   = notebook.check_notebook("experiment.ipynb")     # untracked IO
+results  = notebook.verify_notebook("experiment.ipynb")    # via clew DB
+compiled = notebook.compile_notebook("experiment.ipynb")
+
+print(compiled.to_mermaid())   # Mermaid DAG diagram
+print(compiled.to_script())    # DAG-ordered Python script
+
+notebook.convert_notebook(
+    "experiment.ipynb",
+    output="experiment.py",
+    mode="unified",            # or "per_cell"
+)
+```
+
+</details>
+
+<details>
+<summary><strong>CLI</strong></summary>
+
+```bash
+scitex-notebook verify experiment.ipynb
+scitex-notebook check experiment.ipynb
+scitex-notebook compile experiment.ipynb --format mermaid
+scitex-notebook compile experiment.ipynb --format script -o experiment.py
+scitex-notebook convert experiment.ipynb --mode unified -o experiment.py
+```
+
+</details>
+
+<details>
+<summary><strong>MCP Server — for AI Agents</strong></summary>
+
+| Tool | Description |
+|------|-------------|
+| `notebook_verify`  | Verify clew sessions for a notebook |
+| `notebook_check`   | Flag untracked `scitex.io` calls |
+| `notebook_compile` | Return Mermaid DAG / script / JSON |
+| `notebook_convert` | Convert `.ipynb` to `.py` |
+
+```bash
+python -m scitex_notebook.mcp_server
+```
+
+</details>
+
+## Dependencies
+
+- **Required**: [`scitex-clew`](https://github.com/ywatanabe1989/scitex-clew) — execution-order reconstruction via timestamped sessions.
+- **Optional**: [`scitex-linter`](https://github.com/ywatanabe1989/scitex-linter) — advanced IO-call rewriting during conversion.
+
+## Part of SciTeX
+
+SciTeX Notebook is part of [**SciTeX**](https://scitex.ai).
+
+The SciTeX system follows the Four Freedoms for Research below, inspired by [the Free Software Definition](https://www.gnu.org/philosophy/free-sw.en.html):
+
+>Four Freedoms for Research
+>
+>0. The freedom to **run** your research anywhere — your machine, your terms.
+>1. The freedom to **study** how every step works — from raw data to final manuscript.
+>2. The freedom to **redistribute** your workflows, not just your papers.
+>3. The freedom to **modify** any module and share improvements with the community.
+>
+>AGPL-3.0 — because we believe research infrastructure deserves the same freedoms as the software it runs on.
+
+<!-- EOF -->
