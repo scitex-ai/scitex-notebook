@@ -20,26 +20,52 @@ def cli(ctx):
 
     \b
     Commands:
-      verify   Verify clew sessions for a notebook
-      check    Find cells with untracked scitex.io calls
-      compile  Compile execution history into a DAG
-      convert  Convert .ipynb to .py with @stx.session
+      verify-notebook   Verify clew sessions for a notebook
+      check-notebook    Find cells with untracked scitex.io calls
+      compile-notebook  Compile execution history into a DAG
+      convert-notebook  Convert .ipynb to .py with @stx.session
 
     \b
     Examples:
-      scitex-notebook verify experiment.ipynb
-      scitex-notebook check experiment.ipynb
-      scitex-notebook compile experiment.ipynb --format mermaid
-      scitex-notebook convert experiment.ipynb --mode unified -o out.py
+      scitex-notebook verify-notebook experiment.ipynb
+      scitex-notebook check-notebook experiment.ipynb
+      scitex-notebook compile-notebook experiment.ipynb --format mermaid
+      scitex-notebook convert-notebook experiment.ipynb --mode unified -o out.py
     """
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 
 
-@cli.command("verify")
+def _deprecated_redirect(old: str, new: str):
+    """Build a hidden Click command that exits 2 with a re-run hint."""
+
+    @click.pass_context
+    def _impl(ctx, **_):
+        click.echo(
+            f"error: `scitex-notebook {old}` was renamed to `scitex-notebook {new}`.\n"
+            f"Re-run with: scitex-notebook {new} <args>",
+            err=True,
+        )
+        ctx.exit(2)
+
+    cmd = click.command(
+        old,
+        hidden=True,
+        context_settings={"ignore_unknown_options": True, "allow_extra_args": True},
+    )(_impl)
+    return cmd
+
+
+cli.add_command(_deprecated_redirect("verify", "verify-notebook"))
+cli.add_command(_deprecated_redirect("check", "check-notebook"))
+cli.add_command(_deprecated_redirect("compile", "compile-notebook"))
+cli.add_command(_deprecated_redirect("convert", "convert-notebook"))
+
+
+@cli.command("verify-notebook")
 @click.argument("notebook", type=click.Path(exists=True, dir_okay=False))
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
-def verify_cmd(notebook, as_json):
+def verify_notebook_cmd(notebook, as_json):
     """Verify all clew sessions associated with a notebook."""
     from scitex_notebook import verify_notebook
 
@@ -57,10 +83,10 @@ def verify_cmd(notebook, as_json):
             click.echo(f"  {sid}  status={status}  verified={verified}")
 
 
-@cli.command("check")
+@cli.command("check-notebook")
 @click.argument("notebook", type=click.Path(exists=True, dir_okay=False))
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
-def check_cmd(notebook, as_json):
+def check_notebook_cmd(notebook, as_json):
     """Find cells with scitex.io calls not wrapped in @stx.session."""
     from scitex_notebook import check_notebook
 
@@ -80,7 +106,7 @@ def check_cmd(notebook, as_json):
     sys.exit(1)
 
 
-@cli.command("compile")
+@cli.command("compile-notebook")
 @click.argument("notebook", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "--format",
@@ -90,7 +116,7 @@ def check_cmd(notebook, as_json):
     help="Output format",
 )
 @click.option("-o", "--output", type=click.Path(), help="Output file path")
-def compile_cmd(notebook, fmt, output):
+def compile_notebook_cmd(notebook, fmt, output):
     """Compile notebook execution history into a DAG."""
     from scitex_notebook import compile_notebook
 
@@ -121,7 +147,7 @@ def compile_cmd(notebook, fmt, output):
         click.echo(text)
 
 
-@cli.command("convert")
+@cli.command("convert-notebook")
 @click.argument("notebook", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "--mode",
@@ -136,7 +162,7 @@ def compile_cmd(notebook, fmt, output):
     help="Cell ordering (per_cell mode only)",
 )
 @click.option("-o", "--output", type=click.Path(), help="Output .py path")
-def convert_cmd(notebook, mode, order, output):
+def convert_notebook_cmd(notebook, mode, order, output):
     """Convert a Jupyter notebook to a SciTeX Python script."""
     from scitex_notebook import convert_notebook
 
