@@ -38,8 +38,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-linter = ["scitex-linter>=0.1.0"]
-mcp = ["mcp>=1.0"]
+linter = [
+    "scitex-linter>=0.1.0",
+]
+mcp = [
+    "mcp>=1.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -53,7 +57,8 @@ docs = [
     "sphinx-autodoc-typehints>=1.25",
 ]
 all = [
-    "scitex-notebook[linter,mcp,dev,docs]",
+    "scitex-notebook[linter]",
+    "scitex-notebook[mcp]",
 ]
 
 [project.scripts]
