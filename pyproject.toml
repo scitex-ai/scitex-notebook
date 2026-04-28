@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-notebook"
-version = "0.1.0"
+version = "0.1.1"
 description = "Jupyter notebook verification, compilation, and DAG-based conversion for the SciTeX ecosystem"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -65,10 +65,10 @@ all = [
 scitex-notebook = "scitex_notebook._cli:main"
 
 [project.entry-points."scitex_dev.docs"]
-scitex_notebook = "scitex_notebook"
+scitex-notebook = "scitex_notebook"
 
 [project.entry-points."scitex_dev.skills"]
-scitex_notebook = "scitex_notebook"
+scitex-notebook = "scitex_notebook"
 
 [project.urls]
 Homepage = "https://github.com/ywatanabe1989/scitex-notebook"
