@@ -24,8 +24,15 @@ from ._convert import convert_notebook
 from ._parse import get_code_cells, get_notebook_name, parse_notebook
 from ._verify import check_notebook, verify_notebook
 
-__version__ = "0.1.0"
-
+try:
+    from importlib.metadata import version as _v, PackageNotFoundError
+    try:
+        __version__ = _v("scitex-notebook")
+    except PackageNotFoundError:
+        __version__ = "0.0.0+local"
+    del _v, PackageNotFoundError
+except ImportError:  # pragma: no cover — only on ancient Pythons
+    __version__ = "0.0.0+local"
 __all__ = [
     "parse_notebook",
     "get_code_cells",
