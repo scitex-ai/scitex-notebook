@@ -1,5 +1,7 @@
 ---
 description: Verify notebook reproducibility via clew DB and check for untracked IO calls.
+name: verify
+tags: [scitex-notebook, scitex-package]
 ---
 
 # stx.notebook — Verification

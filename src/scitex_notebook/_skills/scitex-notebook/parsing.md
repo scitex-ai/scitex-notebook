@@ -1,5 +1,7 @@
 ---
 description: Parse a Jupyter notebook with parse_notebook(), extract only code cells with get_code_cells(), and get the notebook's stem name with get_notebook_name().
+name: parsing
+tags: [scitex-notebook, scitex-package]
 ---
 
 # Notebook Parsing

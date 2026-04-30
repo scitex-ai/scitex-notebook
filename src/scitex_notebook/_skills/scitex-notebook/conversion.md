@@ -1,5 +1,7 @@
 ---
 description: Convert a Jupyter notebook to another format (.py, .html, .md) with convert_notebook().
+name: conversion
+tags: [scitex-notebook, scitex-package]
 ---
 
 # Notebook Conversion

@@ -1,6 +1,7 @@
 ---
 name: stx.notebook
-description: Jupyter notebook verification, compilation to DAG-ordered scripts, and reproducibility checking.
+description: Jupyter notebook reproducibility — verify execution via Clew sessions, scan for untracked I/O (`scitex.io` calls outside `@scitex.session`), reconstruct the true cell-dependency DAG from recorded execution timestamps, compile a notebook into a Mermaid DAG diagram OR a topologically-ordered standalone `.py` script, and convert `.ipynb` → SciTeX Python script with `@stx.session` decorators. Use whenever the user asks to "verify my notebook", "check notebook reproducibility", "is this notebook reproducible?", "audit untracked I/O in this notebook", "convert this .ipynb to a Python script", "export notebook as .py", "show me the cell DAG", "reorder cells by dependency", "visualize notebook execution order", "turn this Jupyter mess into a clean script", or works with Jupyter notebooks that need to become production-ready scripts. Embodies the "do what you want, organize later" workflow: execute cells in any order during exploration, then compile back to a clean DAG-ordered script via Clew DB timestamps.
+tags: [scitex-notebook, scitex-package]
 ---
 
 # stx.notebook — Skills Index

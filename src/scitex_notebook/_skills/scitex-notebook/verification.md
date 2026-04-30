@@ -1,5 +1,7 @@
 ---
 description: Verify that a notebook's cells produce reproducible outputs with verify_notebook() and run a quick structural check with check_notebook().
+name: verification
+tags: [scitex-notebook, scitex-package]
 ---
 
 # Notebook Verification

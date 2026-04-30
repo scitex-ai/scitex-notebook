@@ -1,5 +1,7 @@
 ---
 description: Extract cells from .ipynb files and convert notebooks to script format.
+name: parse-and-convert
+tags: [scitex-notebook, scitex-package]
 ---
 
 # stx.notebook — Parse and Convert Notebooks
