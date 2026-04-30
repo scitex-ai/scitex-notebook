@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-notebook"
-version = "0.1.1"
+version = "0.1.2"
 description = "Jupyter notebook verification, compilation, and DAG-based conversion for the SciTeX ecosystem"
 readme = "README.md"
 license = "AGPL-3.0-only"
