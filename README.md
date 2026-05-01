@@ -10,19 +10,9 @@
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 <!-- scitex-badges:end -->
 
-
 <p align="center"><b>Jupyter notebook verification, compilation, and DAG-based conversion</b></p>
 
-<p align="center">
-  <a href="https://badge.fury.io/py/scitex-notebook"><img src="https://badge.fury.io/py/scitex-notebook.svg" alt="PyPI version"></a>
-  <a href="https://scitex-notebook.readthedocs.io/"><img src="https://readthedocs.org/projects/scitex-notebook/badge/?version=latest" alt="Documentation"></a>
-  <a href="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/test.yml"><img src="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
-</p>
-
 ---
-
-> **Interfaces:** Python ⭐⭐⭐ · CLI ⭐⭐ · MCP ⭐⭐ · Skills ⭐⭐ · Hook — · HTTP —
 
 ## Problem and Solution
 
@@ -31,23 +21,6 @@
 | 1 | **Cell order lies** — on-disk `.ipynb` cell sequence has no relationship to execution order, so naive `jupyter nbconvert` produces scripts that don't run | **DAG from timestamps** — reconstructs the true execution dependency graph from `scitex-clew` session timestamps, then emits a topologically-ordered `.py` or a Mermaid diagram |
 | 2 | **Silent untracked I/O** — `scitex.io.save/load` calls outside `@stx.session` leave no reproducibility trail, but nothing warns you | **`check_notebook()`** — scans for untracked I/O and flags cells that bypass session tracking |
 | 3 | **Exploration vs. production gap** — notebooks let you iterate freely, but shipping means rewriting by hand into a clean script | **"Do what you want, organize later"** — execute cells in any order while exploring; `compile_notebook(...).to_script()` emits the production-ready DAG-ordered script |
-
-## Problem
-
-Jupyter notebooks can be executed in any cell order. The on-disk cell sequence
-often has no relationship to the actual execution dependency graph. Traditional
-notebook-to-script converters assume linear order and produce broken scripts.
-
-## Solution
-
-`scitex-notebook` records actual execution order via
-[`scitex-clew`](https://github.com/ywatanabe1989/scitex-clew) timestamps, then
-reconstructs the dependency DAG afterward. *"Do what you want, organize later."*
-
-- **Verify** clew sessions for a notebook (reproducibility check)
-- **Check** for `scitex.io` calls missing `@scitex.session` decoration
-- **Compile** execution history into a Mermaid DAG or topologically-sorted `.py`
-- **Convert** `.ipynb` to a SciTeX Python script (per-cell or unified `main()`)
 
 ## Installation
 
