@@ -10,13 +10,51 @@ from pathlib import Path
 import click
 
 
+def _get_version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("scitex-notebook")
+    except Exception:
+        return "0.0.0"
+
+
+def _show_recursive_help(ctx: click.Context) -> None:
+    click.echo(ctx.get_help())
+    click.echo()
+    group = ctx.command
+    if isinstance(group, click.Group):
+        for name in sorted(group.list_commands(ctx)):
+            cmd = group.get_command(ctx, name)
+            if cmd is None or cmd.hidden:
+                continue
+            sub_ctx = click.Context(cmd, parent=ctx, info_name=name)
+            click.echo(f"{'=' * 60}")
+            click.echo(f"Command: {name}")
+            click.echo(f"{'=' * 60}")
+            click.echo(sub_ctx.get_help())
+            click.echo()
+
+
 @click.group(
     context_settings={"help_option_names": ["-h", "--help"]},
     invoke_without_command=True,
 )
+@click.version_option(version=_get_version(), prog_name="scitex-notebook")
+@click.option("--help-recursive", is_flag=True, help="Show help for all subcommands.")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    help="Emit structured JSON output (propagates to subcommands that honour it).",
+)
 @click.pass_context
-def cli(ctx):
+def cli(ctx, help_recursive, as_json):
     """Jupyter notebook verification, compilation, and conversion.
+
+    \b
+    Config is loaded with the SciTeX precedence chain:
+      config.yaml -> $SCITEX_NOTEBOOK_CONFIG -> ~/.scitex/notebook/config.yaml -> defaults
 
     \b
     Commands:
@@ -32,7 +70,12 @@ def cli(ctx):
       scitex-notebook compile-notebook experiment.ipynb --format mermaid
       scitex-notebook convert-notebook experiment.ipynb --mode unified -o out.py
     """
-    if ctx.invoked_subcommand is None:
+    ctx.ensure_object(dict)
+    ctx.obj["as_json"] = as_json
+    if help_recursive:
+        _show_recursive_help(ctx)
+        ctx.exit(0)
+    elif ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 
 
@@ -66,7 +109,13 @@ cli.add_command(_deprecated_redirect("convert", "convert-notebook"))
 @click.argument("notebook", type=click.Path(exists=True, dir_okay=False))
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
 def verify_notebook_cmd(notebook, as_json):
-    """Verify all clew sessions associated with a notebook."""
+    """Verify all clew sessions associated with a notebook.
+
+    \b
+    Example:
+      $ scitex-notebook verify-notebook experiment.ipynb
+      $ scitex-notebook verify-notebook experiment.ipynb --json
+    """
     from scitex_notebook import verify_notebook
 
     results = verify_notebook(notebook)
@@ -87,7 +136,13 @@ def verify_notebook_cmd(notebook, as_json):
 @click.argument("notebook", type=click.Path(exists=True, dir_okay=False))
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
 def check_notebook_cmd(notebook, as_json):
-    """Find cells with scitex.io calls not wrapped in @stx.session."""
+    """Find cells with scitex.io calls not wrapped in @stx.session.
+
+    \b
+    Example:
+      $ scitex-notebook check-notebook experiment.ipynb
+      $ scitex-notebook check-notebook experiment.ipynb --json
+    """
     from scitex_notebook import check_notebook
 
     issues = check_notebook(notebook)
@@ -116,8 +171,24 @@ def check_notebook_cmd(notebook, as_json):
     help="Output format",
 )
 @click.option("-o", "--output", type=click.Path(), help="Output file path")
-def compile_notebook_cmd(notebook, fmt, output):
-    """Compile notebook execution history into a DAG."""
+@click.option("--dry-run", is_flag=True, help="Print compile plan without writing.")
+@click.option(
+    "-y", "--yes", is_flag=True, help="Suppress interactive confirmation (assume yes)."
+)
+def compile_notebook_cmd(notebook, fmt, output, dry_run, yes):
+    """Compile notebook execution history into a DAG.
+
+    \b
+    Example:
+      $ scitex-notebook compile-notebook experiment.ipynb
+      $ scitex-notebook compile-notebook experiment.ipynb --format script -o pipeline.py
+      $ scitex-notebook compile-notebook experiment.ipynb --dry-run
+    """
+    if dry_run:
+        click.echo(
+            f"DRY RUN — would compile {notebook} (format={fmt}, output={output or 'stdout'})"
+        )
+        return
     from scitex_notebook import compile_notebook
 
     compiled = compile_notebook(notebook)
@@ -162,13 +233,149 @@ def compile_notebook_cmd(notebook, fmt, output):
     help="Cell ordering (per_cell mode only)",
 )
 @click.option("-o", "--output", type=click.Path(), help="Output .py path")
-def convert_notebook_cmd(notebook, mode, order, output):
-    """Convert a Jupyter notebook to a SciTeX Python script."""
+@click.option("--dry-run", is_flag=True, help="Print convert plan without writing.")
+@click.option(
+    "-y", "--yes", is_flag=True, help="Suppress interactive confirmation (assume yes)."
+)
+def convert_notebook_cmd(notebook, mode, order, output, dry_run, yes):
+    """Convert a Jupyter notebook to a SciTeX Python script.
+
+    \b
+    Example:
+      $ scitex-notebook convert-notebook experiment.ipynb -o experiment.py
+      $ scitex-notebook convert-notebook experiment.ipynb --mode unified -o uni.py
+      $ scitex-notebook convert-notebook experiment.ipynb --dry-run
+    """
+    if dry_run:
+        click.echo(
+            f"DRY RUN — would convert {notebook} (mode={mode}, output={output or 'stdout'})"
+        )
+        return
     from scitex_notebook import convert_notebook
 
     script = convert_notebook(notebook, output=output, order=order, mode=mode)
     if not output:
         click.echo(script)
+
+
+# -- Introspection ----------------------------------------------------------
+
+
+@cli.command("list-python-apis")
+@click.option("-v", "--verbose", count=True, help="-v names, -vv +sigs, -vvv +docs")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+def list_python_apis(verbose, as_json):
+    """List public Python APIs in scitex-notebook.
+
+    \b
+    Example:
+      $ scitex-notebook list-python-apis
+      $ scitex-notebook list-python-apis -vv
+      $ scitex-notebook list-python-apis --json
+    """
+    import inspect
+
+    import scitex_notebook
+
+    names = sorted(getattr(scitex_notebook, "__all__", []))
+    apis = []
+    for name in names:
+        obj = getattr(scitex_notebook, name, None)
+        if obj is None:
+            continue
+        entry = {"name": name, "type": type(obj).__name__}
+        if callable(obj):
+            try:
+                entry["signature"] = str(inspect.signature(obj))
+            except (TypeError, ValueError):
+                pass
+        doc = inspect.getdoc(obj) or ""
+        if doc:
+            entry["doc"] = doc.strip().split("\n")[0]
+        apis.append(entry)
+
+    if as_json:
+        click.echo(_json.dumps({"module": "scitex_notebook", "apis": apis}, indent=2))
+        return
+
+    click.secho("scitex_notebook Python APIs", fg="cyan", bold=True)
+    for api in apis:
+        sig = api.get("signature", "")
+        click.echo(f"  {click.style(api['name'], fg='green')}{sig}")
+        if verbose >= 2 and api.get("doc"):
+            click.echo(f"    {api['doc']}")
+
+
+# -- MCP --------------------------------------------------------------------
+
+
+@cli.group(invoke_without_command=True)
+@click.pass_context
+def mcp(ctx):
+    """MCP (Model Context Protocol) server commands."""
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
+
+
+@mcp.command("start")
+@click.option("--dry-run", is_flag=True, help="Print launch plan without starting.")
+@click.option(
+    "-y", "--yes", is_flag=True, help="Suppress interactive confirmation (assume yes)."
+)
+def mcp_start(dry_run, yes):
+    """Start the scitex-notebook MCP server.
+
+    \b
+    Example:
+      $ scitex-notebook mcp start
+      $ scitex-notebook mcp start --dry-run
+    """
+    if dry_run:
+        click.echo("DRY RUN — would start scitex-notebook MCP server (stdio transport)")
+        return
+    from scitex_notebook.mcp_server import main as mcp_main
+
+    mcp_main()
+
+
+@mcp.command("list-tools")
+@click.option("-v", "--verbose", count=True, help="Verbosity: -v +desc, -vv full doc")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+def mcp_list_tools(verbose, as_json):
+    """List available MCP tools.
+
+    \b
+    Example:
+      $ scitex-notebook mcp list-tools
+      $ scitex-notebook mcp list-tools -vv
+      $ scitex-notebook mcp list-tools --json
+    """
+    from scitex_notebook._mcp.tool_schemas import get_tool_schemas
+
+    tools = get_tool_schemas()
+
+    if as_json:
+        payload = {
+            "total": len(tools),
+            "tools": [
+                {
+                    "name": getattr(t, "name", str(t)),
+                    "description": getattr(t, "description", "") or "",
+                }
+                for t in tools
+            ],
+        }
+        click.echo(_json.dumps(payload, indent=2))
+        return
+
+    click.secho(f"scitex-notebook MCP: {len(tools)} tools", fg="cyan", bold=True)
+    for t in sorted(tools, key=lambda x: getattr(x, "name", str(x))):
+        name = getattr(t, "name", str(t))
+        desc = getattr(t, "description", "") or ""
+        click.echo(f"  {name}")
+        if verbose >= 1 and desc:
+            line = desc.split("\n")[0] if verbose == 1 else desc.strip()
+            click.echo(f"    {line}")
 
 
 if __name__ == "__main__":
