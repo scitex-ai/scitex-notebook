@@ -12,9 +12,9 @@ Verify, compile, and convert Jupyter notebooks. Reconstructs the actual executio
 
 | File | Description |
 |------|-------------|
-| [parse-and-convert.md](parse-and-convert.md) | parse_notebook, get_code_cells, get_notebook_name, convert_notebook |
-| [dag-compile.md](dag-compile.md) | compile_notebook, CompiledNotebook.to_mermaid(), to_script(), DAG edge logic |
-| [verify.md](verify.md) | verify_notebook (clew session results), check_notebook (untracked IO scan) |
+| [01_parse-and-convert.md](01_parse-and-convert.md) | parse_notebook, get_code_cells, get_notebook_name, convert_notebook |
+| [02_dag-compile.md](02_dag-compile.md) | compile_notebook, CompiledNotebook.to_mermaid(), to_script(), DAG edge logic |
+| [03_verify.md](03_verify.md) | verify_notebook (clew session results), check_notebook (untracked IO scan) |
 
 ## Quick Reference
 

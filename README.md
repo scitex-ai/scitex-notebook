@@ -10,7 +10,17 @@
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 <!-- scitex-badges:end -->
 
-<p align="center"><b>Jupyter notebook verification, compilation, and DAG-based conversion</b></p>
+<p align="center">
+  <a href="https://scitex.ai">
+    <img src="docs/scitex-logo-blue-cropped.png" alt="SciTeX" width="400">
+  </a>
+</p>
+
+<p align="center"><b>Jupyter notebook verification, compilation, and DAG-based conversion to topologically-ordered Python scripts.</b></p>
+
+<p align="center">
+  <a href="https://scitex-notebook.readthedocs.io/">Full Documentation</a> · <code>pip install scitex-notebook</code>
+</p>
 
 ---
 
@@ -92,6 +102,46 @@ python -m scitex_notebook.mcp_server
 
 </details>
 
+## 2 Interfaces
+
+<details open>
+<summary><strong>Python API</strong></summary>
+
+<br>
+
+```python
+from scitex_notebook import (
+    parse_notebook, get_code_cells,
+    compile_notebook, convert_notebook,
+    verify_notebook, check_notebook,
+)
+
+cells = parse_notebook("experiment.ipynb")
+compiled = compile_notebook("experiment.ipynb")
+print(compiled.to_mermaid())   # Mermaid DAG
+print(compiled.to_script())    # Topologically-ordered .py
+
+results = verify_notebook("experiment.ipynb")
+issues = check_notebook("experiment.ipynb")
+```
+
+</details>
+
+<details>
+<summary><strong>CLI</strong></summary>
+
+<br>
+
+```bash
+scitex-notebook parse experiment.ipynb        # cell list
+scitex-notebook compile experiment.ipynb      # DAG-ordered .py
+scitex-notebook convert experiment.ipynb      # .ipynb → @stx.session script
+scitex-notebook verify experiment.ipynb       # clew session pass/fail
+scitex-notebook check experiment.ipynb        # untracked-IO scan
+```
+
+</details>
+
 ## Dependencies
 
 - **Required**: [`scitex-clew`](https://github.com/ywatanabe1989/scitex-clew) — execution-order reconstruction via timestamped sessions.
@@ -113,5 +163,11 @@ The SciTeX system follows the Four Freedoms for Research below, inspired by [the
 >3. The freedom to **modify** any module and share improvements with the community.
 >
 >AGPL-3.0 — because we believe research infrastructure deserves the same freedoms as the software it runs on.
+
+---
+
+<p align="center">
+  <a href="https://scitex.ai" target="_blank"><img src="docs/scitex-icon-navy-inverted.png" alt="SciTeX" width="40"/></a>
+</p>
 
 <!-- EOF -->

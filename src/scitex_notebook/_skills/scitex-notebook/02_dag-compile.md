@@ -10,7 +10,7 @@ Jupyter notebooks can be run in arbitrary cell order. SciTeX records actual exec
 
 ## compile_notebook
 
-Query the clew DB for all `@stx.session` runs associated with a notebook, sort by timestamp, and build a dependency DAG.
+Query the clew DB for all `@scitex.session` runs associated with a notebook, sort by timestamp, and build a dependency DAG.
 
 ```python
 from scitex.notebook import compile_notebook
@@ -57,10 +57,10 @@ print(script)
 #!/usr/bin/env python3
 """Auto-compiled from notebook execution history."""
 
-import scitex as stx
+import scitex
 
 
-@stx.session
+@scitex.session
 def step_00_sess_001():
     """Session: sess-001"""
     # Original script: /path/to/experiment.ipynb
@@ -68,7 +68,7 @@ def step_00_sess_001():
 
 step_00_sess_001()
 
-@stx.session
+@scitex.session
 def step_01_sess_003():
     """Session: sess-003"""
     # Original script: /path/to/experiment.ipynb
