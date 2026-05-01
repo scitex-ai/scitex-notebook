@@ -1,0 +1,385 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_notebook._convert &mdash; scitex-notebook 0.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            scitex-notebook
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">scitex-notebook</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_notebook._convert</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_notebook._convert</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;Convert Jupyter notebooks to SciTeX-compatible Python scripts.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._compile</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_notebook</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_code_cells</span><span class="p">,</span> <span class="n">parse_notebook</span>
+
+<span class="c1"># IPython magic patterns to strip</span>
+<span class="n">_MAGIC_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\s*[%!].*$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+
+<span class="c1"># Import statement pattern (matches: import x, import x as y, import x.y.z as w, from x import y)</span>
+<span class="n">_IMPORT_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;^(?:import\s+\S+(?:\s+as\s+\S+)?|from\s+\S+\s+import\s+.+)$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span>
+<span class="p">)</span>
+
+<span class="c1"># Common notebook patterns to convert to SciTeX equivalents</span>
+<span class="n">_CONVERSIONS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># plt.show() → stx.io.save(fig, &quot;figure.png&quot;)</span>
+    <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;plt\.show\(\)&quot;</span><span class="p">),</span> <span class="s1">&#39;# stx.io.save(fig, &quot;figure.png&quot;)  # was: plt.show()&#39;</span><span class="p">),</span>
+    <span class="c1"># plt.savefig(&quot;...&quot;) → stx.io.save(fig, &quot;...&quot;)</span>
+    <span class="p">(</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;plt\.savefig\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\)&#39;</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s2">&quot;stx.io.save(fig, \1)  # was: plt.savefig&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="c1"># df.to_csv(&quot;...&quot;) → stx.io.save(df, &quot;...&quot;)</span>
+    <span class="p">(</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\w+)\.to_csv\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\)&#39;</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s2">&quot;stx.io.save(\1, \2)  # was: .to_csv&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="c1"># pd.read_csv(&quot;...&quot;) → stx.io.load(&quot;...&quot;)</span>
+    <span class="p">(</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;pd\.read_csv\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\)&#39;</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s1">&#39;stx.io.load(\1)  # was: pd.read_csv&#39;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="c1"># np.save(&quot;...&quot;, arr) → stx.io.save(arr, &quot;...&quot;)</span>
+    <span class="p">(</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;np\.save\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\s*,\s*(.+?)\)&#39;</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s2">&quot;stx.io.save(\2, \1)  # was: np.save&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="c1"># np.load(&quot;...&quot;) → stx.io.load(&quot;...&quot;)</span>
+    <span class="p">(</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;np\.load\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\)&#39;</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s1">&#39;stx.io.load(\1)  # was: np.load&#39;</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="convert_notebook">
+<a class="viewcode-back" href="../../api.html#scitex_notebook.convert_notebook">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_notebook</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">output</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cell&quot;</span><span class="p">,</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;per_cell&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a .ipynb notebook to a .py script with @stx.session.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str or Path</span>
+<span class="sd">        Path to the .ipynb file.</span>
+<span class="sd">    output : str or Path, optional</span>
+<span class="sd">        Output .py file path. If None, returns string only.</span>
+<span class="sd">    order : str</span>
+<span class="sd">        Cell ordering: &quot;cell&quot; (notebook order) or &quot;dag&quot; (execution order</span>
+<span class="sd">        from clew DB timestamps).</span>
+<span class="sd">    mode : str</span>
+<span class="sd">        Conversion mode:</span>
+<span class="sd">        - &quot;per_cell&quot;: Each code cell becomes a separate @stx.session function (default).</span>
+<span class="sd">        - &quot;unified&quot;: All cells merged into a single @stx.session main() function.</span>
+<span class="sd">          Markdown cells become comments, imports are hoisted, and common</span>
+<span class="sd">          notebook patterns (plt.show, pd.read_csv, etc.) are converted to</span>
+<span class="sd">          SciTeX equivalents (stx.io.save/load).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The generated Python script content.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;unified&quot;</span><span class="p">:</span>
+        <span class="n">script</span> <span class="o">=</span> <span class="n">_convert_unified</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;cell&quot;</span><span class="p">:</span>
+        <span class="n">script</span> <span class="o">=</span> <span class="n">_convert_cell_order</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;dag&quot;</span><span class="p">:</span>
+        <span class="n">script</span> <span class="o">=</span> <span class="n">_convert_dag_order</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid order: </span><span class="si">{</span><span class="n">order</span><span class="si">!r}</span><span class="s2">. Must be &#39;cell&#39; or &#39;dag&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">script</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_unified</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert notebook into a single @stx.session main() function.</span>
+
+<span class="sd">    - Markdown cells become block comments</span>
+<span class="sd">    - Imports are hoisted to module level</span>
+<span class="sd">    - Code is merged into main() body</span>
+<span class="sd">    - Common IO patterns are converted to stx.io equivalents</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_cells</span> <span class="o">=</span> <span class="n">parse_notebook</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">imports</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">body_lines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">has_plt</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">all_cells</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cell</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;markdown&quot;</span><span class="p">:</span>
+            <span class="c1"># Convert markdown to comments</span>
+            <span class="n">md_text</span> <span class="o">=</span> <span class="n">cell</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">md_text</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">body_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">md_line</span> <span class="ow">in</span> <span class="n">md_text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+                <span class="n">body_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    # </span><span class="si">{</span><span class="n">md_line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">body_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">cell</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;code&quot;</span><span class="p">:</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">_clean_source</span><span class="p">(</span><span class="n">cell</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">source</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Separate imports from body code</span>
+            <span class="n">cell_imports</span><span class="p">,</span> <span class="n">cell_body</span> <span class="o">=</span> <span class="n">_separate_imports</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+            <span class="n">imports</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cell_imports</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">cell_body</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="c1"># Apply SciTeX conversions</span>
+                <span class="n">cell_body</span> <span class="o">=</span> <span class="n">_apply_conversions</span><span class="p">(</span><span class="n">cell_body</span><span class="p">)</span>
+                <span class="n">body_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">cell_body</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+                    <span class="n">body_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Track matplotlib usage</span>
+            <span class="k">if</span> <span class="s2">&quot;plt.&quot;</span> <span class="ow">in</span> <span class="n">source</span> <span class="ow">or</span> <span class="s2">&quot;matplotlib&quot;</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+                <span class="n">has_plt</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Deduplicate imports</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">unique_imports</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">imports</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">imp</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">imp</span><span class="p">)</span>
+            <span class="n">unique_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">imp</span><span class="p">)</span>
+
+    <span class="c1"># Filter out imports that stx.session provides (plt is injected)</span>
+    <span class="n">filtered_imports</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">imp</span>
+        <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">unique_imports</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">imp</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;import matplotlib&quot;</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">imp</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;from matplotlib&quot;</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="s2">&quot;matplotlib.pyplot&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">imp</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Build script</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;#!/usr/bin/env python3&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s1">&#39;&quot;&quot;&quot;Converted from </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> using scitex notebook convert --mode unified.&quot;&quot;&quot;&#39;</span><span class="p">,</span>
+        <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;import scitex as stx&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Add non-scitex imports</span>
+    <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">filtered_imports</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;scitex&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">imp</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">imp</span><span class="p">)</span>
+
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Build injected parameters</span>
+    <span class="n">injected</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;    CONFIG=stx.INJECTED,&quot;</span><span class="p">,</span> <span class="s2">&quot;    logger=stx.INJECTED,&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">has_plt</span><span class="p">:</span>
+        <span class="n">injected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;    plt=stx.INJECTED,&quot;</span><span class="p">)</span>
+
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;@stx.session(seed=42)&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;def main(&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">injected</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;):&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    &quot;&quot;&quot;Analysis pipeline converted from </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">.&quot;&quot;&quot;&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Add body</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">body_lines</span><span class="p">)</span>
+
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;    return 0&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;if __name__ == &quot;__main__&quot;:&#39;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;    main()&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;# EOF&quot;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_separate_imports</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Separate import statements from body code.&quot;&quot;&quot;</span>
+    <span class="n">imports</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">body_lines</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">_IMPORT_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">stripped</span><span class="p">):</span>
+            <span class="n">imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">body_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">imports</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">body_lines</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply_conversions</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply SciTeX pattern conversions to source code.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">replacement</span> <span class="ow">in</span> <span class="n">_CONVERSIONS</span><span class="p">:</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">replacement</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">source</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_cell_order</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert notebook in cell index order.&quot;&quot;&quot;</span>
+    <span class="n">cells</span> <span class="o">=</span> <span class="n">get_code_cells</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">_script_header</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">cells</span><span class="p">:</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">_clean_source</span><span class="p">(</span><span class="n">cell</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">source</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">continue</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">cell</span><span class="p">[</span><span class="s2">&quot;index&quot;</span><span class="p">]</span>
+        <span class="n">func_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;cell_</span><span class="si">{</span><span class="n">idx</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;@stx.session&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;def </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2">():&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;    return 0&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s2">()&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_dag_order</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert notebook in DAG execution order from clew DB.&quot;&quot;&quot;</span>
+    <span class="n">compiled</span> <span class="o">=</span> <span class="n">compile_notebook</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">compiled</span><span class="o">.</span><span class="n">execution_order</span><span class="p">:</span>
+        <span class="c1"># No execution history; fall back to cell order</span>
+        <span class="k">return</span> <span class="n">_convert_cell_order</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">compiled</span><span class="o">.</span><span class="n">to_script</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_clean_source</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Strip IPython magics and clean up source code.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_MAGIC_RE</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_script_header</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate script header.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="s2">&quot;#!/usr/bin/env python3&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s1">&#39;&quot;&quot;&quot;Converted from </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">.&quot;&quot;&quot;&#39;</span><span class="p">,</span>
+        <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;import scitex as stx&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+
+<span class="c1"># EOF</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
