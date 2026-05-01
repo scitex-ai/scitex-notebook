@@ -99,7 +99,9 @@ python -m scitex_notebook.mcp_server
 
 ## Part of SciTeX
 
-SciTeX Notebook is part of [**SciTeX**](https://scitex.ai).
+`scitex-notebook` is part of [**SciTeX**](https://scitex.ai). Install via
+the umbrella with `pip install scitex[notebook]` to use as
+`scitex.notebook` (Python) or `scitex notebook ...` (CLI).
 
 The SciTeX system follows the Four Freedoms for Research below, inspired by [the Free Software Definition](https://www.gnu.org/philosophy/free-sw.en.html):
 
