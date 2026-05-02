@@ -42,12 +42,16 @@ linter = [
     "scitex-linter>=0.1.0",
 ]
 mcp = [
-    "mcp>=1.0",
+    "fastmcp>=2.0",
 ]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff",
+    # Optional features whose tests live in the suite — installed in
+    # ``[dev]`` so a fresh ``pip install -e .[dev]`` runs the full test
+    # suite. Production users opt in via ``pip install scitex-notebook[mcp]``.
+    "fastmcp>=2.0",
 ]
 docs = [
     "sphinx>=7.0",
