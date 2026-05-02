@@ -21,11 +21,14 @@ from __future__ import annotations
 
 from ._compile import CompiledNotebook, compile_notebook
 from ._convert import convert_notebook
+from ._magic import load_ipython_extension, unload_ipython_extension
 from ._parse import get_code_cells, get_notebook_name, parse_notebook
 from ._verify import check_notebook, verify_notebook
 
 try:
-    from importlib.metadata import version as _v, PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _v
+
     try:
         __version__ = _v("scitex-notebook")
     except PackageNotFoundError:
@@ -42,6 +45,8 @@ __all__ = [
     "compile_notebook",
     "CompiledNotebook",
     "convert_notebook",
+    "load_ipython_extension",
+    "unload_ipython_extension",
     "__version__",
 ]
 
