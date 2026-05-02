@@ -25,6 +25,14 @@ from ._magic import load_ipython_extension, unload_ipython_extension
 from ._parse import get_code_cells, get_notebook_name, parse_notebook
 from ._verify import check_notebook, verify_notebook
 
+# Canonical bare-verb aliases (Python ↔ MCP parity per general/03_interface_03_mcp/07).
+# MCP tool ``notebook_verify`` pairs with ``scitex_notebook.verify``; the
+# legacy ``verify_notebook`` name is kept as a back-compat alias.
+verify = verify_notebook
+check = check_notebook
+compile = compile_notebook  # noqa: A001 — shadowing the builtin is intentional here.
+convert = convert_notebook
+
 try:
     from importlib.metadata import PackageNotFoundError
     from importlib.metadata import version as _v
@@ -40,14 +48,18 @@ __all__ = [
     "parse_notebook",
     "get_code_cells",
     "get_notebook_name",
-    "verify_notebook",
-    "check_notebook",
-    "compile_notebook",
+    # Canonical bare verbs (match MCP tool names per general/03_interface_03_mcp/07).
+    "verify",
+    "check",
+    "compile",
+    "convert",
     "CompiledNotebook",
-    "convert_notebook",
     "load_ipython_extension",
     "unload_ipython_extension",
     "__version__",
 ]
+# Legacy verb_noun names (verify_notebook etc.) remain importable for prior
+# callers but are intentionally absent from ``__all__`` so the canonical
+# bare-verb names are what audit-mcp-tools sees.
 
 # EOF

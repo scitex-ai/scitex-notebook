@@ -333,9 +333,14 @@ def mcp_start(dry_run, yes):
     if dry_run:
         click.echo("DRY RUN — would start scitex-notebook MCP server (stdio transport)")
         return
-    from scitex_notebook.mcp_server import main as mcp_main
-
-    mcp_main()
+    try:
+        from scitex_notebook._mcp_server import run_server
+    except ImportError as e:
+        raise click.ClickException(
+            "Failed to import MCP server. Install fastmcp: "
+            f"pip install scitex-notebook[mcp]\n{e}"
+        ) from e
+    run_server()
 
 
 @mcp.command("list-tools")
@@ -350,9 +355,18 @@ def mcp_list_tools(verbose, as_json):
       $ scitex-notebook mcp list-tools -vv
       $ scitex-notebook mcp list-tools --json
     """
-    from scitex_notebook._mcp.tool_schemas import get_tool_schemas
+    try:
+        from scitex_notebook._mcp_server import mcp as mcp_server
+    except ImportError as e:
+        raise click.ClickException(
+            "Failed to import MCP server. Install fastmcp: "
+            f"pip install scitex-notebook[mcp]\n{e}"
+        ) from e
 
-    tools = get_tool_schemas()
+    # FastMCP 3.x uses an async ``list_tools()`` returning a list[Tool].
+    import asyncio
+
+    tools = asyncio.run(mcp_server.list_tools())
 
     if as_json:
         payload = {
@@ -360,7 +374,7 @@ def mcp_list_tools(verbose, as_json):
             "tools": [
                 {
                     "name": getattr(t, "name", str(t)),
-                    "description": getattr(t, "description", "") or "",
+                    "description": (getattr(t, "description", None) or "").strip(),
                 }
                 for t in tools
             ],
@@ -371,11 +385,79 @@ def mcp_list_tools(verbose, as_json):
     click.secho(f"scitex-notebook MCP: {len(tools)} tools", fg="cyan", bold=True)
     for t in sorted(tools, key=lambda x: getattr(x, "name", str(x))):
         name = getattr(t, "name", str(t))
-        desc = getattr(t, "description", "") or ""
+        desc = (getattr(t, "description", None) or "").strip()
         click.echo(f"  {name}")
         if verbose >= 1 and desc:
-            line = desc.split("\n")[0] if verbose == 1 else desc.strip()
+            line = desc.split("\n")[0] if verbose == 1 else desc
             click.echo(f"    {line}")
+
+
+@mcp.command("doctor")
+def mcp_doctor():
+    """Check MCP server dependencies and configuration.
+
+    \b
+    Example:
+      $ scitex-notebook mcp doctor
+    """
+    click.echo("Checking MCP dependencies...")
+    try:
+        import fastmcp
+
+        click.echo(f"  [OK] fastmcp {fastmcp.__version__}")
+    except ImportError:
+        click.echo("  [!!] fastmcp not installed")
+        click.echo("    Install with: pip install scitex-notebook[mcp]")
+        raise SystemExit(2)
+
+    try:
+        import asyncio
+
+        from scitex_notebook._mcp_server import mcp as mcp_server
+
+        tools = asyncio.run(mcp_server.list_tools())
+        click.echo(f"  [OK] MCP server loaded ({len(tools)} tools)")
+    except Exception as e:
+        click.echo(f"  [!!] MCP server error: {e}")
+        raise SystemExit(2)
+
+    click.echo()
+    click.echo("MCP server is ready.")
+    click.echo("Run with: scitex-notebook mcp start")
+
+
+@mcp.command("show-installation")
+@click.option("--json", "as_json", is_flag=True, help="Emit the snippet as JSON.")
+def mcp_show_installation(as_json):
+    """Print the snippet to add to a Claude Code / MCP-host config.
+
+    \b
+    Example:
+      $ scitex-notebook mcp show-installation
+      $ scitex-notebook mcp show-installation --json
+    """
+    snippet = {
+        "mcpServers": {
+            "scitex-notebook": {
+                "command": "scitex-notebook",
+                "args": ["mcp", "start"],
+            }
+        }
+    }
+    if as_json:
+        click.echo(_json.dumps(snippet, indent=2))
+        return
+    click.echo("Install scitex-notebook with MCP support:")
+    click.echo()
+    click.echo("  pip install scitex-notebook[mcp]")
+    click.echo()
+    click.echo("Add to your MCP client configuration:")
+    click.echo()
+    click.echo(_json.dumps(snippet, indent=2))
+    click.echo()
+    click.echo("Verify with:")
+    click.echo("  scitex-notebook mcp doctor")
+    click.echo("  scitex-notebook mcp list-tools")
 
 
 if __name__ == "__main__":
