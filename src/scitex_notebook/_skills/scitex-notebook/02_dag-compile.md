@@ -1,8 +1,10 @@
 ---
-description: Reconstruct the actual execution dependency graph from clew DB timestamps and export as Mermaid diagram or topologically-ordered Python script.
-name: dag-compile
-tags: [scitex-notebook, scitex-package]
+description: |
+  [TOPIC] Dag Compile
+  [DETAILS] Reconstruct the actual execution dependency graph from clew DB timestamps and export as Mermaid diagram or topologically-ordered Python script.
+tags: [scitex-notebook-dag-compile, scitex-notebook]
 ---
+
 
 # stx.notebook — DAG Compilation
 

@@ -1,8 +1,10 @@
 ---
-description: Verify notebook reproducibility via clew DB and check for untracked IO calls.
-name: verify
-tags: [scitex-notebook, scitex-package]
+description: |
+  [TOPIC] Verify
+  [DETAILS] Verify notebook reproducibility via clew DB and check for untracked IO calls.
+tags: [scitex-notebook-verify, scitex-notebook]
 ---
+
 
 # stx.notebook — Verification
 

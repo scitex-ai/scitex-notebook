@@ -1,8 +1,10 @@
 ---
-description: Extract cells from .ipynb files and convert notebooks to script format.
-name: parse-and-convert
-tags: [scitex-notebook, scitex-package]
+description: |
+  [TOPIC] Parse And Convert
+  [DETAILS] Extract cells from .ipynb files and convert notebooks to script format.
+tags: [scitex-notebook-parse-and-convert, scitex-notebook]
 ---
+
 
 # stx.notebook — Parse and Convert Notebooks
 
