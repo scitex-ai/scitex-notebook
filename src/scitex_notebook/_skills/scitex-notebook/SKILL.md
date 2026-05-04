@@ -22,6 +22,7 @@ Verify, compile, and convert Jupyter notebooks. Reconstructs the actual executio
 | [02_quick-start.md](02_quick-start.md) | verify / check / compile / convert in one screen |
 | [03_python-api.md](03_python-api.md) | Public callables + `CompiledNotebook` |
 | [04_cli-reference.md](04_cli-reference.md) | `scitex-notebook` console commands |
+| [05_mcp-tools.md](05_mcp-tools.md) | FastMCP server — six `notebook_*` tools |
 
 ### Deep-dive
 
