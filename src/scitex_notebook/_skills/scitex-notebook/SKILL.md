@@ -14,11 +14,22 @@ Verify, compile, and convert Jupyter notebooks. Reconstructs the actual executio
 
 ## Sub-skills
 
+### Mandatory
+
 | File | Description |
 |------|-------------|
-| [01_parse-and-convert.md](01_parse-and-convert.md) | parse_notebook, get_code_cells, get_notebook_name, convert_notebook |
-| [02_dag-compile.md](02_dag-compile.md) | compile_notebook, CompiledNotebook.to_mermaid(), to_script(), DAG edge logic |
-| [03_verify.md](03_verify.md) | verify_notebook (clew session results), check_notebook (untracked IO scan) |
+| [01_installation.md](01_installation.md) | pip install + extras + verify |
+| [02_quick-start.md](02_quick-start.md) | verify / check / compile / convert in one screen |
+| [03_python-api.md](03_python-api.md) | Public callables + `CompiledNotebook` |
+| [04_cli-reference.md](04_cli-reference.md) | `scitex-notebook` console commands |
+
+### Deep-dive
+
+| File | Description |
+|------|-------------|
+| [11_parse-and-convert.md](11_parse-and-convert.md) | parse_notebook, get_code_cells, get_notebook_name, convert |
+| [12_dag-compile.md](12_dag-compile.md) | compile, CompiledNotebook.to_mermaid()/to_script(), DAG edge logic |
+| [13_verify.md](13_verify.md) | verify (clew session results), check (untracked IO scan) |
 
 ## Quick Reference
 
