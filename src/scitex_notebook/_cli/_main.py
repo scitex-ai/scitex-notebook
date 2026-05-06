@@ -426,15 +426,30 @@ def mcp_doctor():
     click.echo("Run with: scitex-notebook mcp start")
 
 
-@mcp.command("show-installation")
+@mcp.command(
+    "show-installation", hidden=True, context_settings={"ignore_unknown_options": True}
+)
+@click.pass_context
+def mcp_show_installation_deprecated(ctx):
+    """(deprecated) Renamed to `install`."""
+    click.echo(
+        "error: `scitex-notebook mcp show-installation` was renamed to "
+        "`scitex-notebook mcp install`.\n"
+        "Re-run with: scitex-notebook mcp install",
+        err=True,
+    )
+    ctx.exit(2)
+
+
+@mcp.command("install")
 @click.option("--json", "as_json", is_flag=True, help="Emit the snippet as JSON.")
-def mcp_show_installation(as_json):
+def mcp_install(as_json):
     """Print the snippet to add to a Claude Code / MCP-host config.
 
     \b
     Example:
-      $ scitex-notebook mcp show-installation
-      $ scitex-notebook mcp show-installation --json
+      $ scitex-notebook mcp install
+      $ scitex-notebook mcp install --json
     """
     snippet = {
         "mcpServers": {
