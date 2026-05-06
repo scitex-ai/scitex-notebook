@@ -446,7 +446,6 @@ def mcp_show_installation_deprecated(ctx):
 @click.option("--dry-run", is_flag=True, help="Accepted for §2; this verb is informational, never mutates state.")
 @click.option("--yes", "-y", is_flag=True, help="Accepted for §2; this verb is informational, never mutates state.")
 def mcp_install(as_json, dry_run, yes):
-    del dry_run, yes  # audit §2 — no-op flags
     """Print the snippet to add to a Claude Code / MCP-host config.
 
     \b
@@ -454,6 +453,7 @@ def mcp_install(as_json, dry_run, yes):
       $ scitex-notebook mcp install
       $ scitex-notebook mcp install --json
     """
+    del dry_run, yes  # audit §2 — no-op flags
     snippet = {
         "mcpServers": {
             "scitex-notebook": {
