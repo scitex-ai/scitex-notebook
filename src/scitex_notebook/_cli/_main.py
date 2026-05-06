@@ -475,6 +475,15 @@ def mcp_install(as_json):
     click.echo("  scitex-notebook mcp list-tools")
 
 
+# §1a: install-shell-completion + print-shell-completion (canonical leaves)
+try:
+    from scitex_dev._cli._completion import attach_shell_completion
+
+    attach_shell_completion(cli, prog_name="scitex-notebook")
+except ImportError:
+    pass
+
+
 if __name__ == "__main__":
     cli()
 
