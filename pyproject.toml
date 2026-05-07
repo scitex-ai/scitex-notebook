@@ -39,7 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 linter = [
-    "scitex-linter>=0.1.0",
+    "scitex-dev>=0.11.0",
 ]
 mcp = [
     "fastmcp>=2.0",
