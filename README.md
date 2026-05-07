@@ -144,6 +144,40 @@ scitex-notebook check experiment.ipynb        # untracked-IO scan
 
 </details>
 
+## Architecture
+
+```
+scitex_notebook/
+├── _parse.py             ← `parse_notebook`, `get_code_cells`
+├── _check.py             ← untracked-IO scanner
+├── _verify.py            ← clew-DB session validator
+├── _compile/             ← DAG reconstruction
+│   ├── _dag.py           ← timestamp-based topological order
+│   ├── _to_mermaid.py    ← Mermaid diagram emitter
+│   └── _to_script.py     ← `.py` script emitter
+├── _convert.py           ← `.ipynb` → `@stx.session` script
+├── _cli.py               ← Click CLI: parse/check/verify/compile/convert
+└── mcp_server.py         ← MCP tools for AI agents
+```
+
+## Demo
+
+```mermaid
+flowchart LR
+    A["experiment.ipynb"] --> B[parse_notebook]
+    B --> C[scitex-clew DB<br/>timestamps]
+    C --> D[compile_notebook<br/>DAG]
+    D --> E["to_mermaid()"]
+    D --> F["to_script()<br/>topologically ordered .py"]
+```
+
+Out-of-order cells in the notebook are re-ordered into a runnable script:
+
+```bash
+$ scitex-notebook compile experiment.ipynb --format script -o experiment.py
+$ python experiment.py     # runs cleanly, every time
+```
+
 ## Dependencies
 
 - **Required**: [`scitex-clew`](https://github.com/ywatanabe1989/scitex-clew) — execution-order reconstruction via timestamped sessions.
