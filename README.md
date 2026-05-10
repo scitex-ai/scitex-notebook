@@ -9,7 +9,7 @@
 <p align="center"><b>Jupyter notebook verification, compilation, and DAG-based conversion to topologically-ordered Python scripts.</b></p>
 
 <p align="center">
-  <a href="https://scitex-notebook.readthedocs.io/">Full Documentation</a> · <code>pip install scitex-notebook</code>
+  <a href="https://scitex-notebook.readthedocs.io/">Full Documentation</a> · <code>uv pip install scitex-notebook[all]</code>
 </p>
 
 <!-- scitex-badges:start -->
