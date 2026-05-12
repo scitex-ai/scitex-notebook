@@ -1,0 +1,8 @@
+# scitex-dev audit configuration — tracked, see
+# `01_ecosystem_06_local-state-directories.md` §1.
+audit:
+  root-whitelist:
+    files:
+      # Codecov config canonically lives at the repo root; PS-103
+      # baseline whitelist does not yet include it.
+      - codecov.yml

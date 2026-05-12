@@ -54,6 +54,13 @@ mgmt
 # Memo
 GITIGNORED
 
+# scitex local-state — track only .scitex/dev/config.yaml at the repo root
+# (see scitex_dev/_skills/general/01_ecosystem_06_local-state-directories.md §1).
+.scitex/*
+!.scitex/dev/
+.scitex/dev/*
+!.scitex/dev/config.yaml
+
 # Playwright
 .playwright-cli
 

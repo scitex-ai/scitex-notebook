@@ -97,8 +97,10 @@ select = ["E", "F", "I", "W"]
 ignore = ["E501"]
 
 [tool.coverage.run]
+parallel = true
 source = ["scitex_notebook"]
 omit = ["*/tests/*"]
+concurrency = ["multiprocessing", "thread"]
 
 [tool.coverage.report]
 # Real coverage is currently ~23% — most of _mcp/, _cli/, _convert/, _verify

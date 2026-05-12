@@ -22,6 +22,11 @@ import json
 
 import pytest
 
+# fastmcp lives in the [mcp] / [dev] extras, not [project.dependencies] —
+# PA-303 requires a module-level importorskip so a bare ``pip install -e .``
+# environment cleanly skips the file instead of erroring on import.
+fastmcp = pytest.importorskip("fastmcp")
+
 
 @pytest.fixture(scope="module")
 def server():
