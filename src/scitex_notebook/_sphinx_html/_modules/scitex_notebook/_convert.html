@@ -92,7 +92,10 @@
 <span class="c1"># Common notebook patterns to convert to SciTeX equivalents</span>
 <span class="n">_CONVERSIONS</span> <span class="o">=</span> <span class="p">[</span>
     <span class="c1"># plt.show() → stx.io.save(fig, &quot;figure.png&quot;)</span>
-    <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;plt\.show\(\)&quot;</span><span class="p">),</span> <span class="s1">&#39;# stx.io.save(fig, &quot;figure.png&quot;)  # was: plt.show()&#39;</span><span class="p">),</span>
+    <span class="p">(</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;plt\.show\(\)&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;# stx.io.save(fig, &quot;figure.png&quot;)  # was: plt.show()&#39;</span><span class="p">,</span>
+    <span class="p">),</span>
     <span class="c1"># plt.savefig(&quot;...&quot;) → stx.io.save(fig, &quot;...&quot;)</span>
     <span class="p">(</span>
         <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;plt\.savefig\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\)&#39;</span><span class="p">),</span>
@@ -106,7 +109,7 @@
     <span class="c1"># pd.read_csv(&quot;...&quot;) → stx.io.load(&quot;...&quot;)</span>
     <span class="p">(</span>
         <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;pd\.read_csv\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\)&#39;</span><span class="p">),</span>
-        <span class="sa">r</span><span class="s1">&#39;stx.io.load(\1)  # was: pd.read_csv&#39;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s2">&quot;stx.io.load(\1)  # was: pd.read_csv&quot;</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="c1"># np.save(&quot;...&quot;, arr) → stx.io.save(arr, &quot;...&quot;)</span>
     <span class="p">(</span>
@@ -116,7 +119,7 @@
     <span class="c1"># np.load(&quot;...&quot;) → stx.io.load(&quot;...&quot;)</span>
     <span class="p">(</span>
         <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;np\.load\(([&quot;</span><span class="se">\&#39;</span><span class="s1">].*?[&quot;</span><span class="se">\&#39;</span><span class="s1">])\)&#39;</span><span class="p">),</span>
-        <span class="sa">r</span><span class="s1">&#39;stx.io.load(\1)  # was: np.load&#39;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s2">&quot;stx.io.load(\1)  # was: np.load&quot;</span><span class="p">,</span>
     <span class="p">),</span>
 <span class="p">]</span>
 
@@ -128,6 +131,8 @@
     <span class="n">output</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cell&quot;</span><span class="p">,</span>
     <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;per_cell&quot;</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a .ipynb notebook to a .py script with @stx.session.</span>
 
@@ -147,6 +152,10 @@
 <span class="sd">          Markdown cells become comments, imports are hoisted, and common</span>
 <span class="sd">          notebook patterns (plt.show, pd.read_csv, etc.) are converted to</span>
 <span class="sd">          SciTeX equivalents (stx.io.save/load).</span>
+<span class="sd">    db : optional</span>
+<span class="sd">        Pre-resolved clew DB handle, used only when ``order=&#39;dag&#39;``.</span>
+<span class="sd">        Exposed for testability so tests can inject a hand-rolled fake</span>
+<span class="sd">        without patching internals.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -160,7 +169,7 @@
     <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;cell&quot;</span><span class="p">:</span>
         <span class="n">script</span> <span class="o">=</span> <span class="n">_convert_cell_order</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;dag&quot;</span><span class="p">:</span>
-        <span class="n">script</span> <span class="o">=</span> <span class="n">_convert_dag_order</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">script</span> <span class="o">=</span> <span class="n">_convert_dag_order</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid order: </span><span class="si">{</span><span class="n">order</span><span class="si">!r}</span><span class="s2">. Must be &#39;cell&#39; or &#39;dag&#39;.&quot;</span><span class="p">)</span>
 
@@ -325,9 +334,9 @@
     <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_convert_dag_order</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_dag_order</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert notebook in DAG execution order from clew DB.&quot;&quot;&quot;</span>
-    <span class="n">compiled</span> <span class="o">=</span> <span class="n">compile_notebook</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">compiled</span> <span class="o">=</span> <span class="n">compile_notebook</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">compiled</span><span class="o">.</span><span class="n">execution_order</span><span class="p">:</span>
         <span class="c1"># No execution history; fall back to cell order</span>

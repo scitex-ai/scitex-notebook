@@ -89,7 +89,12 @@
 
 <div class="viewcode-block" id="verify_notebook">
 <a class="viewcode-back" href="../../api.html#scitex_notebook.verify_notebook">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">verify_notebook</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_notebook</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">verify_run_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify all clew sessions associated with a notebook.</span>
 
 <span class="sd">    Finds all runs in the clew DB whose metadata contains this notebook&#39;s</span>
@@ -99,22 +104,34 @@
 <span class="sd">    ----------</span>
 <span class="sd">    path : str or Path</span>
 <span class="sd">        Path to the .ipynb file.</span>
+<span class="sd">    db : optional</span>
+<span class="sd">        Pre-resolved clew DB handle. If omitted, the default DB from</span>
+<span class="sd">        ``scitex_clew.get_db()`` is used. Exposed for testability so</span>
+<span class="sd">        tests can inject a hand-rolled fake without patching internals.</span>
+<span class="sd">    verify_run_fn : optional</span>
+<span class="sd">        Callable ``(session_id) -&gt; Verification``. If omitted,</span>
+<span class="sd">        ``scitex_clew.verify_run`` is used. Exposed for testability.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    list of dict</span>
 <span class="sd">        Verification results per session.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span><span class="p">,</span> <span class="n">verify_run</span>
+    <span class="k">if</span> <span class="n">db</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">verify_run_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span><span class="p">,</span> <span class="n">verify_run</span>
+
+        <span class="k">if</span> <span class="n">db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">verify_run_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">verify_run_fn</span> <span class="o">=</span> <span class="n">verify_run</span>
 
     <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
     <span class="n">runs</span> <span class="o">=</span> <span class="n">_get_runs_for_notebook</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
 
     <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">verification</span> <span class="o">=</span> <span class="n">verify_run</span><span class="p">(</span><span class="n">run</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">])</span>
+            <span class="n">verification</span> <span class="o">=</span> <span class="n">verify_run_fn</span><span class="p">(</span><span class="n">run</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">])</span>
             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">{</span>
                     <span class="s2">&quot;session_id&quot;</span><span class="p">:</span> <span class="n">run</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">],</span>

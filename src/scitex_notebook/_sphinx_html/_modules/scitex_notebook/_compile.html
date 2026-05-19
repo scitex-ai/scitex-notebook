@@ -162,7 +162,7 @@
 
 <div class="viewcode-block" id="compile_notebook">
 <a class="viewcode-back" href="../../api.html#scitex_notebook.compile_notebook">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">compile_notebook</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">CompiledNotebook</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compile_notebook</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CompiledNotebook</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compile a notebook&#39;s execution history into a DAG.</span>
 
 <span class="sd">    Queries the clew DB for all sessions associated with this notebook,</span>
@@ -173,16 +173,22 @@
 <span class="sd">    ----------</span>
 <span class="sd">    path : str or Path</span>
 <span class="sd">        Path to the .ipynb file.</span>
+<span class="sd">    db : optional</span>
+<span class="sd">        Pre-resolved clew DB handle. If omitted, the default DB from</span>
+<span class="sd">        ``scitex_clew.get_db()`` is used. Exposed for testability so</span>
+<span class="sd">        tests can inject a hand-rolled fake without patching internals.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    CompiledNotebook</span>
 <span class="sd">        Compiled execution history with DAG and execution order.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+    <span class="k">if</span> <span class="n">db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scitex_clew</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+
+        <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
 
     <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
     <span class="n">runs</span> <span class="o">=</span> <span class="n">_get_runs_for_notebook</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">runs</span><span class="p">:</span>
