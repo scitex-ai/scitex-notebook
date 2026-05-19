@@ -21,7 +21,10 @@ _IMPORT_RE = re.compile(
 # Common notebook patterns to convert to SciTeX equivalents
 _CONVERSIONS = [
     # plt.show() → stx.io.save(fig, "figure.png")
-    (re.compile(r"plt\.show\(\)"), '# stx.io.save(fig, "figure.png")  # was: plt.show()'),
+    (
+        re.compile(r"plt\.show\(\)"),
+        '# stx.io.save(fig, "figure.png")  # was: plt.show()',
+    ),
     # plt.savefig("...") → stx.io.save(fig, "...")
     (
         re.compile(r'plt\.savefig\((["\'].*?["\'])\)'),
@@ -35,7 +38,7 @@ _CONVERSIONS = [
     # pd.read_csv("...") → stx.io.load("...")
     (
         re.compile(r'pd\.read_csv\((["\'].*?["\'])\)'),
-        r'stx.io.load(\1)  # was: pd.read_csv',
+        r"stx.io.load(\1)  # was: pd.read_csv",
     ),
     # np.save("...", arr) → stx.io.save(arr, "...")
     (
@@ -45,7 +48,7 @@ _CONVERSIONS = [
     # np.load("...") → stx.io.load("...")
     (
         re.compile(r'np\.load\((["\'].*?["\'])\)'),
-        r'stx.io.load(\1)  # was: np.load',
+        r"stx.io.load(\1)  # was: np.load",
     ),
 ]
 
@@ -55,6 +58,8 @@ def convert_notebook(
     output: Union[str, Path, None] = None,
     order: str = "cell",
     mode: str = "per_cell",
+    *,
+    db=None,
 ) -> str:
     """Convert a .ipynb notebook to a .py script with @stx.session.
 
@@ -74,6 +79,10 @@ def convert_notebook(
           Markdown cells become comments, imports are hoisted, and common
           notebook patterns (plt.show, pd.read_csv, etc.) are converted to
           SciTeX equivalents (stx.io.save/load).
+    db : optional
+        Pre-resolved clew DB handle, used only when ``order='dag'``.
+        Exposed for testability so tests can inject a hand-rolled fake
+        without patching internals.
 
     Returns
     -------
@@ -87,7 +96,7 @@ def convert_notebook(
     elif order == "cell":
         script = _convert_cell_order(path)
     elif order == "dag":
-        script = _convert_dag_order(path)
+        script = _convert_dag_order(path, db=db)
     else:
         raise ValueError(f"Invalid order: {order!r}. Must be 'cell' or 'dag'.")
 
@@ -251,9 +260,9 @@ def _convert_cell_order(path: Path) -> str:
     return "\n".join(lines)
 
 
-def _convert_dag_order(path: Path) -> str:
+def _convert_dag_order(path: Path, *, db=None) -> str:
     """Convert notebook in DAG execution order from clew DB."""
-    compiled = compile_notebook(path)
+    compiled = compile_notebook(path, db=db)
 
     if not compiled.execution_order:
         # No execution history; fall back to cell order

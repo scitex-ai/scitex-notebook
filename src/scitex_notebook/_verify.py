@@ -16,7 +16,12 @@ _IO_SAVE_RE = re.compile(r"(?:scitex|stx)\.io\.save\s*\(")
 _SESSION_RE = re.compile(r"@(?:scitex|stx)\.session")
 
 
-def verify_notebook(path: Union[str, Path]) -> List[Dict]:
+def verify_notebook(
+    path: Union[str, Path],
+    *,
+    db=None,
+    verify_run_fn=None,
+) -> List[Dict]:
     """Verify all clew sessions associated with a notebook.
 
     Finds all runs in the clew DB whose metadata contains this notebook's
@@ -26,22 +31,34 @@ def verify_notebook(path: Union[str, Path]) -> List[Dict]:
     ----------
     path : str or Path
         Path to the .ipynb file.
+    db : optional
+        Pre-resolved clew DB handle. If omitted, the default DB from
+        ``scitex_clew.get_db()`` is used. Exposed for testability so
+        tests can inject a hand-rolled fake without patching internals.
+    verify_run_fn : optional
+        Callable ``(session_id) -> Verification``. If omitted,
+        ``scitex_clew.verify_run`` is used. Exposed for testability.
 
     Returns
     -------
     list of dict
         Verification results per session.
     """
-    from scitex_clew import get_db, verify_run
+    if db is None or verify_run_fn is None:
+        from scitex_clew import get_db, verify_run
+
+        if db is None:
+            db = get_db()
+        if verify_run_fn is None:
+            verify_run_fn = verify_run
 
     path = Path(path).resolve()
-    db = get_db()
     runs = _get_runs_for_notebook(db, str(path))
 
     results = []
     for run in runs:
         try:
-            verification = verify_run(run["session_id"])
+            verification = verify_run_fn(run["session_id"])
             results.append(
                 {
                     "session_id": run["session_id"],

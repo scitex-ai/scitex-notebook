@@ -80,7 +80,7 @@ class CompiledNotebook:
         return "\n".join(lines)
 
 
-def compile_notebook(path: Union[str, Path]) -> CompiledNotebook:
+def compile_notebook(path: Union[str, Path], *, db=None) -> CompiledNotebook:
     """Compile a notebook's execution history into a DAG.
 
     Queries the clew DB for all sessions associated with this notebook,
@@ -91,16 +91,22 @@ def compile_notebook(path: Union[str, Path]) -> CompiledNotebook:
     ----------
     path : str or Path
         Path to the .ipynb file.
+    db : optional
+        Pre-resolved clew DB handle. If omitted, the default DB from
+        ``scitex_clew.get_db()`` is used. Exposed for testability so
+        tests can inject a hand-rolled fake without patching internals.
 
     Returns
     -------
     CompiledNotebook
         Compiled execution history with DAG and execution order.
     """
-    from scitex_clew import get_db
+    if db is None:
+        from scitex_clew import get_db
+
+        db = get_db()
 
     path = Path(path).resolve()
-    db = get_db()
     runs = _get_runs_for_notebook(db, str(path))
 
     if not runs:
