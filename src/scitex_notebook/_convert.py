@@ -74,6 +74,7 @@ def convert_notebook(
         from clew DB timestamps).
     mode : str
         Conversion mode:
+
         - "per_cell": Each code cell becomes a separate @stx.session function (default).
         - "unified": All cells merged into a single @stx.session main() function.
           Markdown cells become comments, imports are hoisted, and common
