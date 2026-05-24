@@ -190,6 +190,74 @@ async def notebook_convert(
 
 
 # ---------------------------------------------------------------------------
+# Notebook parsing tools
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def notebook_parse_notebook(path: str) -> str:
+    """Parse a ``.ipynb`` file and return every cell.
+
+    Read the notebook with stdlib JSON (no ``nbformat`` dependency) and
+    return each cell's ``index``, ``source``, ``cell_id``, and
+    ``cell_type`` — both code and markdown cells.
+
+    Use whenever the user asks to "parse this notebook", "list the cells",
+    "show me what's in this .ipynb", or needs the raw cell structure before
+    a deeper compile/verify step. Returns the full cell list.
+
+    Parameters
+    ----------
+    path
+        Filesystem path to a ``.ipynb`` file.
+    """
+    from scitex_notebook import parse_notebook
+
+    cells = parse_notebook(path)
+    return _json({"success": True, "path": path, "n_cells": len(cells), "cells": cells})
+
+
+@mcp.tool()
+async def notebook_get_code_cells(path: str) -> str:
+    """Return only the code cells of a ``.ipynb`` file.
+
+    Parse the notebook and filter to ``cell_type == "code"``, dropping
+    markdown/raw cells.
+
+    Use whenever the user asks for "just the code cells", "extract the code
+    from this notebook", or needs the executable cells without prose.
+    Returns the filtered cell list.
+
+    Parameters
+    ----------
+    path
+        Filesystem path to a ``.ipynb`` file.
+    """
+    from scitex_notebook import get_code_cells
+
+    cells = get_code_cells(path)
+    return _json({"success": True, "path": path, "n_cells": len(cells), "cells": cells})
+
+
+@mcp.tool()
+async def notebook_get_notebook_name(path: str) -> str:
+    """Return the notebook's stem name (filename without extension).
+
+    Use whenever the user asks for "the notebook name", or a downstream
+    tool needs a stable, extension-free identifier for the notebook.
+
+    Parameters
+    ----------
+    path
+        Filesystem path to a ``.ipynb`` file.
+    """
+    from scitex_notebook import get_notebook_name
+
+    name = get_notebook_name(path)
+    return _json({"success": True, "path": path, "name": name})
+
+
+# ---------------------------------------------------------------------------
 # Skills tools (canonical pair — see 03_interface_03_mcp/06_skills-integration.md)
 # ---------------------------------------------------------------------------
 

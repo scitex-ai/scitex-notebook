@@ -92,7 +92,6 @@ class TestServerIdentity:
         assert len(server.instructions) > 40
 
 
-
 # ---------------------------------------------------------------------------
 # Tool registration
 # ---------------------------------------------------------------------------
@@ -103,6 +102,9 @@ EXPECTED_TOOLS = {
     "notebook_check",
     "notebook_compile",
     "notebook_convert",
+    "notebook_parse_notebook",
+    "notebook_get_code_cells",
+    "notebook_get_notebook_name",
     "notebook_skills_list",
     "notebook_skills_get",
 }
@@ -219,7 +221,6 @@ class TestSkillsTools:
         # Assert
         assert isinstance(body.get("skills"), list)
 
-
     def test_skills_list_finds_at_least_one_skill(self, server):
         # Arrange
         # Act
@@ -238,7 +239,9 @@ class TestSkillsTools:
         # Assert
         assert isinstance(body, dict)
 
-    def test_skills_get_unknown_returns_error_payload_body_get_success_is_false(self, server):
+    def test_skills_get_unknown_returns_error_payload_body_get_success_is_false(
+        self, server
+    ):
         # Arrange
         # Arrange
         # Act
@@ -248,7 +251,9 @@ class TestSkillsTools:
         # Assert
         assert body.get("success") is False
 
-    def test_skills_get_unknown_returns_error_payload_not_found_in_body_get_error(self, server):
+    def test_skills_get_unknown_returns_error_payload_not_found_in_body_get_error(
+        self, server
+    ):
         # Arrange
         # Arrange
         # Act
@@ -257,7 +262,6 @@ class TestSkillsTools:
         # Assert
         # Assert
         assert "not found" in body.get("error", "")
-
 
 
 # EOF

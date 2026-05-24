@@ -54,12 +54,18 @@ __all__ = [
     "compile",
     "convert",
     "CompiledNotebook",
-    "load_ipython_extension",
-    "unload_ipython_extension",
     "__version__",
 ]
 # Legacy verb_noun names (verify_notebook etc.) remain importable for prior
 # callers but are intentionally absent from ``__all__`` so the canonical
 # bare-verb names are what audit-mcp-tools sees.
+#
+# ``load_ipython_extension`` / ``unload_ipython_extension`` are IPython
+# framework entry-point callbacks invoked by ``%load_ext scitex_notebook``
+# (they take an ``ipython`` shell object, not data). They MUST stay
+# importable from the package top — IPython resolves them via ``getattr``,
+# which does not require ``__all__`` membership — but they are NOT part of
+# the agent-facing Python-API surface, so they are intentionally absent
+# from ``__all__`` (no MCP tool would make sense for a shell-hook callback).
 
 # EOF
