@@ -26,7 +26,7 @@ Quick Example
 
    import scitex_notebook as notebook
 
-   compiled = notebook.compile_notebook("experiment.ipynb")
+   compiled = notebook.compile("experiment.ipynb")
    print(compiled.to_mermaid())
    print(compiled.to_script())
 

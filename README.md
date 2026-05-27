@@ -49,23 +49,23 @@ pip install "scitex-notebook[linter]"  # IO-call conversion via scitex-linter
 pip install "scitex-notebook[all]"     # everything
 ```
 
-## Quickstart
+## Four Interfaces
 
 <details>
 <summary><strong>Python API</strong></summary>
 
 ```python
-import scitex_notebook as notebook
+import scitex_notebook
 
-cells    = notebook.parse_notebook("experiment.ipynb")
-issues   = notebook.check_notebook("experiment.ipynb")     # untracked IO
-results  = notebook.verify_notebook("experiment.ipynb")    # via clew DB
-compiled = notebook.compile_notebook("experiment.ipynb")
+cells    = scitex_notebook.parse_notebook("experiment.ipynb")
+issues   = scitex_notebook.check("experiment.ipynb")         # untracked IO
+results  = scitex_notebook.verify("experiment.ipynb")        # via clew DB
+compiled = scitex_notebook.compile("experiment.ipynb")
 
 print(compiled.to_mermaid())   # Mermaid DAG diagram
 print(compiled.to_script())    # DAG-ordered Python script
 
-notebook.convert_notebook(
+scitex_notebook.convert(
     "experiment.ipynb",
     output="experiment.py",
     mode="unified",            # or "per_cell"
@@ -78,11 +78,13 @@ notebook.convert_notebook(
 <summary><strong>CLI</strong></summary>
 
 ```bash
-scitex-notebook verify experiment.ipynb
-scitex-notebook check experiment.ipynb
-scitex-notebook compile experiment.ipynb --format mermaid
-scitex-notebook compile experiment.ipynb --format script -o experiment.py
-scitex-notebook convert experiment.ipynb --mode unified -o experiment.py
+scitex-notebook verify-notebook experiment.ipynb
+scitex-notebook check-notebook experiment.ipynb
+scitex-notebook compile-notebook experiment.ipynb --format mermaid
+scitex-notebook compile-notebook experiment.ipynb --format script -o experiment.py
+scitex-notebook convert-notebook experiment.ipynb --mode unified -o experiment.py
+scitex-notebook --help-recursive               # all commands + flags
+scitex-notebook --json verify-notebook exp.ipynb  # structured output
 ```
 
 </details>
@@ -96,67 +98,86 @@ scitex-notebook convert experiment.ipynb --mode unified -o experiment.py
 | `notebook_check`   | Flag untracked `scitex.io` calls |
 | `notebook_compile` | Return Mermaid DAG / script / JSON |
 | `notebook_convert` | Convert `.ipynb` to `.py` |
+| `notebook_parse_notebook` | Parse `.ipynb` and return all cells |
+| `notebook_get_code_cells` | Return only code cells |
+| `notebook_get_notebook_name` | Return notebook stem name |
+| `notebook_skills_list` | List bundled skill pages |
+| `notebook_skills_get` | Return a named skill page body |
 
 ```bash
-python -m scitex_notebook.mcp_server
+scitex-notebook mcp start                      # start stdio server
+scitex-notebook mcp list-tools                 # list available tools
+scitex-notebook mcp doctor                     # verify MCP dependencies
 ```
 
 </details>
 
-## 2 Interfaces
-
-<details open>
-<summary><strong>Python API</strong></summary>
-
-<br>
+## Python API
 
 ```python
 from scitex_notebook import (
-    parse_notebook, get_code_cells,
-    compile_notebook, convert_notebook,
-    verify_notebook, check_notebook,
+    parse_notebook, get_code_cells, get_notebook_name,
+    compile, convert, verify, check,
 )
 
 cells = parse_notebook("experiment.ipynb")
-compiled = compile_notebook("experiment.ipynb")
+compiled = compile("experiment.ipynb")
 print(compiled.to_mermaid())   # Mermaid DAG
 print(compiled.to_script())    # Topologically-ordered .py
 
-results = verify_notebook("experiment.ipynb")
-issues = check_notebook("experiment.ipynb")
+results = verify("experiment.ipynb")
+issues = check("experiment.ipynb")
 ```
 
-</details>
-
-<details>
-<summary><strong>CLI</strong></summary>
-
-<br>
+## CLI
 
 ```bash
-scitex-notebook parse experiment.ipynb        # cell list
-scitex-notebook compile experiment.ipynb      # DAG-ordered .py
-scitex-notebook convert experiment.ipynb      # .ipynb → @stx.session script
-scitex-notebook verify experiment.ipynb       # clew session pass/fail
-scitex-notebook check experiment.ipynb        # untracked-IO scan
+scitex-notebook compile-notebook experiment.ipynb   # DAG-ordered .py (--format script)
+scitex-notebook convert-notebook experiment.ipynb   # .ipynb → @stx.session script
+scitex-notebook verify-notebook experiment.ipynb    # clew session pass/fail
+scitex-notebook check-notebook experiment.ipynb     # untracked-IO scan
+scitex-notebook list-python-apis -vv                # public APIs with signatures
+scitex-notebook skills list                         # bundled skill pages
+scitex-notebook --help-recursive                    # full CLI reference
 ```
 
-</details>
+## IPython Magic Extension
+
+```python
+%load_ext scitex_notebook   # one line at the top of any notebook
+```
+
+Once loaded, every executed cell is analysed at runtime:
+- **Hidden-state leak detection** — warns when a cell reads a name not defined by any earlier cell in this run
+- **Out-of-order execution check** — flags non-monotonic `execution_count`
+- **Untracked I/O** — every `stx.io.save/load` call is recorded per-cell
+
+Cell metadata (dependencies, warnings, file hashes) is written to the same
+Clew SQLite database used by `@scitex.session` and `stx.io`.
+
+```bash
+%load_ext scitex_notebook
+%unload_ext scitex_notebook
+```
 
 ## Architecture
 
 ```
 scitex_notebook/
-├── _parse.py             ← `parse_notebook`, `get_code_cells`
-├── _check.py             ← untracked-IO scanner
-├── _verify.py            ← clew-DB session validator
-├── _compile/             ← DAG reconstruction
-│   ├── _dag.py           ← timestamp-based topological order
-│   ├── _to_mermaid.py    ← Mermaid diagram emitter
-│   └── _to_script.py     ← `.py` script emitter
-├── _convert.py           ← `.ipynb` → `@stx.session` script
-├── _cli.py               ← Click CLI: parse/check/verify/compile/convert
-└── mcp_server.py         ← MCP tools for AI agents
+├── __init__.py           ← public API: parse, compile, convert, verify, check
+├── __main__.py           ← `python -m scitex_notebook` entry
+├── _parse.py             ← `parse_notebook`, `get_code_cells`, `get_notebook_name`
+├── _verify.py            ← `verify_notebook` (clew session lookups), `check_notebook`
+├── _compile.py           ← `compile_notebook`, `CompiledNotebook`, DAG construction
+├── _convert.py           ← `convert_notebook`: .ipynb → @stx.session .py
+├── _magic.py             ← IPython extension (%load_ext scitex_notebook)
+├── _mcp_server.py        ← FastMCP server: 9 notebook_* tools
+├── _cli/                 ← Click CLI
+│   ├── _main.py          ←   verify-notebook, check-notebook, compile-notebook,
+│   │                         convert-notebook, mcp, list-python-apis, skills
+│   └── _skills.py        ←   `skills list|get|install`
+└── _skills/
+    └── scitex-notebook/  ← bundled agent-facing skill pages
 ```
 
 ## Demo
@@ -173,7 +194,7 @@ flowchart LR
 Out-of-order cells in the notebook are re-ordered into a runnable script:
 
 ```bash
-$ scitex-notebook compile experiment.ipynb --format script -o experiment.py
+$ scitex-notebook compile-notebook experiment.ipynb --format script -o experiment.py
 $ python experiment.py     # runs cleanly, every time
 ```
 
