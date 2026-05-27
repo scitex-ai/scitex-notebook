@@ -77,16 +77,6 @@
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.CompiledNotebook"><code class="docutils literal notranslate"><span class="pre">CompiledNotebook</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.check"><code class="docutils literal notranslate"><span class="pre">check()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.compile"><code class="docutils literal notranslate"><span class="pre">compile()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.convert"><code class="docutils literal notranslate"><span class="pre">convert()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.get_code_cells"><code class="docutils literal notranslate"><span class="pre">get_code_cells()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.get_notebook_name"><code class="docutils literal notranslate"><span class="pre">get_notebook_name()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.load_ipython_extension"><code class="docutils literal notranslate"><span class="pre">load_ipython_extension()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.parse_notebook"><code class="docutils literal notranslate"><span class="pre">parse_notebook()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.unload_ipython_extension"><code class="docutils literal notranslate"><span class="pre">unload_ipython_extension()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#scitex_notebook.verify"><code class="docutils literal notranslate"><span class="pre">verify()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-scitex_notebook._parse">Parse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-scitex_notebook._verify">Verify</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-scitex_notebook._compile">Compile</a></li>
@@ -107,7 +97,7 @@ afterward — <em>“do what you want, organize later.”</em></p>
 <h2>Quick Example<a class="headerlink" href="#quick-example" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex_notebook</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">notebook</span>
 
-<span class="n">compiled</span> <span class="o">=</span> <span class="n">notebook</span><span class="o">.</span><span class="n">compile_notebook</span><span class="p">(</span><span class="s2">&quot;experiment.ipynb&quot;</span><span class="p">)</span>
+<span class="n">compiled</span> <span class="o">=</span> <span class="n">notebook</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;experiment.ipynb&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">to_mermaid</span><span class="p">())</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">to_script</span><span class="p">())</span>
 </pre></div>
