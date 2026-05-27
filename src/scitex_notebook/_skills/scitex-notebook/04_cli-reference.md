@@ -38,6 +38,9 @@ config.yaml -> $SCITEX_NOTEBOOK_CONFIG -> ~/.scitex/notebook/config.yaml -> defa
 | `convert-notebook` | Convert a Jupyter notebook to a SciTeX Python script |
 | `list-python-apis` | List public Python APIs in scitex-notebook |
 | `mcp` | MCP (Model Context Protocol) server commands |
+| `skills` | Agent-facing skills — `list`, `get`, `install` |
+
+Deprecated aliases (redirect with error): `verify`, `check`, `compile`, `convert`.
 
 ## Examples
 
@@ -45,7 +48,15 @@ config.yaml -> $SCITEX_NOTEBOOK_CONFIG -> ~/.scitex/notebook/config.yaml -> defa
 scitex-notebook verify-notebook  experiment.ipynb
 scitex-notebook check-notebook   experiment.ipynb
 scitex-notebook compile-notebook experiment.ipynb --format mermaid
+scitex-notebook compile-notebook experiment.ipynb --dry-run           # preview
 scitex-notebook convert-notebook experiment.ipynb --mode unified -o out.py
+scitex-notebook list-python-apis -vv                                   # signatures
+scitex-notebook skills list                                            # bundled skills
+scitex-notebook skills install                                        # → ~/.scitex/dev/skills/
+scitex-notebook --json verify-notebook exp.ipynb                      # JSON output
+scitex-notebook mcp start                                             # start server
+scitex-notebook mcp list-tools                                        # list MCP tools
+scitex-notebook mcp doctor                                            # verify deps
 ```
 
 For per-command flags, run `scitex-notebook <command> --help` or
