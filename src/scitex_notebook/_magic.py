@@ -135,7 +135,7 @@ def _detect_notebook_path(shell) -> Optional[Path]:
 
     Order of attempts:
 
-    1. ``scitex.gen.get_notebook_path()`` if importable.
+    1. ``scitex_context.get_notebook_path()`` if importable.
     2. ``ipykernel`` + Jupyter server REST query (existing helper).
     3. ``IPYTHONDIR`` / fallback to a synthetic path under ``$PWD``.
 
@@ -143,7 +143,7 @@ def _detect_notebook_path(shell) -> Optional[Path]:
     without a stable notebook handle).
     """
     try:
-        from scitex_gen import get_notebook_path
+        from scitex_context import get_notebook_path
 
         nb = get_notebook_path()
         if nb:

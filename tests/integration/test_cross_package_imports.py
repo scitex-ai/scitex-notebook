@@ -22,8 +22,8 @@ import pytest
 CROSS_PACKAGE_IMPORTS = [
     "scitex_clew",
     "scitex_clew._tracker",
+    "scitex_context",
     "scitex_dev._cli._completion",
-    "scitex_gen",
 ]
 # ===== END AUTO-GENERATED =====
 
