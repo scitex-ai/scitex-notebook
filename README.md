@@ -49,7 +49,7 @@ pip install "scitex-notebook[linter]"  # IO-call conversion via scitex-linter
 pip install "scitex-notebook[all]"     # everything
 ```
 
-## Quickstart
+## Four Interfaces
 
 <details>
 <summary><strong>Python API</strong></summary>
