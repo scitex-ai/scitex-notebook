@@ -667,3 +667,4 @@ flycheck_*.el
 
 ### Source: /home/ywatanabe/.git-templates/.gitignore-templates/Custom/SLURM.gitignore ###
 slurm_logs
+.worktrees/
