@@ -143,7 +143,7 @@ def _detect_notebook_path(shell) -> Optional[Path]:
     without a stable notebook handle).
     """
     try:
-        from scitex_gen import get_notebook_path
+        from scitex_context import get_notebook_path
 
         nb = get_notebook_path()
         if nb:

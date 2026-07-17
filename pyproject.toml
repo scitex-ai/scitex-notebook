@@ -35,6 +35,7 @@ classifiers = [
 dependencies = [
     "click>=8.0",
     "scitex-clew>=0.1.0",
+    "scitex-context>=0.1.0",
 ]
 
 [project.optional-dependencies]
