@@ -54,6 +54,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 # scitex_clew is a hard dependency: this magic is meaningless without it.
 try:
     from scitex_clew._tracker import SessionTracker, set_tracker
@@ -249,10 +253,9 @@ class ScitexNotebookMagics:
             }
             self._cell_warnings.append(warn)
             self.warnings.append(warn)
-            print(
+            log.warning(
                 f"[scitex-notebook] WARN cell {self._exec_index}: "
-                f"hidden-state name {name!r} (no defining cell in this run)",
-                file=sys.stderr,
+                f"hidden-state name {name!r} (no defining cell in this run)"
             )
 
         # 2. Data-dependency parent edge — most recent earlier cell that
@@ -324,10 +327,9 @@ class ScitexNotebookMagics:
                 }
                 self._cell_warnings.append(warn)
                 self.warnings.append(warn)
-                print(
+                log.warning(
                     f"[scitex-notebook] WARN cell {self._exec_index}: "
-                    f"out-of-order (execution_count={ec})",
-                    file=sys.stderr,
+                    f"out-of-order (execution_count={ec})"
                 )
 
             # Only register name definitions if the cell ran cleanly —
@@ -368,7 +370,7 @@ def load_ipython_extension(ipython) -> None:
         return  # idempotent
     _INSTALLED = ScitexNotebookMagics(ipython)
     ipython.user_ns["_scitex_nb_magic"] = _INSTALLED
-    print(
+    log.info(
         "[scitex-notebook] cell-level Clew tracking enabled "
         f"(notebook: {_INSTALLED.notebook_path or 'unknown'})"
     )

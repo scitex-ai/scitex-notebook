@@ -35,6 +35,7 @@ classifiers = [
 dependencies = [
     "click>=8.0",
     "scitex-clew>=0.1.0",
+    "scitex-logging>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -87,6 +88,10 @@ packages = ["src/scitex_notebook"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "--cov=scitex_notebook --cov-report=term-missing"
+markers = [
+    "smoke: fast CLI happy-path tests (<60s, runs on every PR)",
+    "e2e: end-to-end workflows against real subsystems (mandatory on every PR)",
+]
 
 [tool.ruff]
 line-length = 88

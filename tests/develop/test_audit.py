@@ -11,6 +11,8 @@ without the audit corpus available locally. CI for release
 branches MUST NOT set this — drift goes silent.
 """
 
+# PS-206b: import-smoke-allowed — audit conformance wrapper, assertions live in scitex-dev.
+
 import shutil
 
 import pytest

@@ -3,12 +3,12 @@
 
 from __future__ import annotations
 
-import logging
+import scitex_logging as slogging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-logger = logging.getLogger(__name__)
+log = slogging.getLogger(__name__)
 
 from ._verify import _get_runs_for_notebook
 
