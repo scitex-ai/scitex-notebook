@@ -14,12 +14,14 @@
 
 <!-- scitex-badges:start -->
 <p align="center">
-  <a href="https://pypi.org/project/scitex-notebook/"><img src="https://img.shields.io/pypi/v/scitex-notebook.svg" alt="PyPI"></a>
-  <a href="https://pypi.org/project/scitex-notebook/"><img src="https://img.shields.io/pypi/pyversions/scitex-notebook.svg" alt="Python"></a>
-  <a href="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/test.yml"><img src="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="https://codecov.io/gh/ywatanabe1989/scitex-notebook"><img src="https://codecov.io/gh/ywatanabe1989/scitex-notebook/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://scitex-notebook.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/scitex-notebook/badge/?version=latest" alt="Docs"></a>
-  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/license-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
+  <a href="https://pypi.org/project/scitex-notebook/"><img src="https://img.shields.io/pypi/v/scitex-notebook?label=pypi" alt="pypi"></a>
+  <a href="https://pypi.org/project/scitex-notebook/"><img src="https://img.shields.io/pypi/pyversions/scitex-notebook?label=python" alt="python"></a>
+  <a href="https://scitex-notebook.readthedocs.io/en/latest/"><img src="https://img.shields.io/readthedocs/scitex-notebook?label=docs" alt="docs"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-notebook/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml?branch=develop&label=tests" alt="tests"></a>
+  <a href="https://github.com/ywatanabe1989/scitex-notebook/actions/workflows/import-smoke-on-ubuntu-py3-12.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-notebook/import-smoke-on-ubuntu-py3-12.yml?branch=develop&label=install-check" alt="install-check"></a>
+  <a href="https://codecov.io/gh/ywatanabe1989/scitex-notebook/branch/develop/graph/badge.svg"><img src="https://img.shields.io/codecov/c/github/ywatanabe1989/scitex-notebook/develop?label=cov" alt="cov"></a>
 </p>
 <!-- scitex-badges:end -->
 
@@ -33,21 +35,82 @@
 | 2 | **Silent untracked I/O** — `scitex.io.save/load` calls outside `@stx.session` leave no reproducibility trail, but nothing warns you | **`check_notebook()`** — scans for untracked I/O and flags cells that bypass session tracking |
 | 3 | **Exploration vs. production gap** — notebooks let you iterate freely, but shipping means rewriting by hand into a clean script | **"Do what you want, organize later"** — execute cells in any order while exploring; `compile_notebook(...).to_script()` emits the production-ready DAG-ordered script |
 
+## Demo
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 40, 'curve': 'linear'}, 'themeVariables': {'fontSize': '12px'}}}%%
+flowchart LR
+    A["experiment.ipynb"] --> B[parse_notebook]
+    B --> C[scitex-clew DB timestamps]
+    C --> D[compile_notebook DAG]
+    D --> E["to_mermaid()"]
+    D --> F["to_script() topologically ordered .py"]
+```
+
+<p align="center"><sub><b>Figure 1.</b> Notebook compilation from parse to DAG-ordered script.</sub></p>
+
+Out-of-order cells in the notebook are re-ordered into a runnable script:
+
+```bash
+$ scitex-notebook compile-notebook experiment.ipynb --format script -o experiment.py
+$ python experiment.py     # runs cleanly, every time
+```
+
 ## Installation
+
+```bash
+uv pip install "scitex-notebook[all]"
+```
 
 Requires Python >= 3.10.
 
+<details>
+<summary><b>Per-module extras</b></summary>
+
+<br>
+
+| Extra | Pulls in |
+|---|---|
+| `mcp` | fastmcp server for AI agents |
+| `linter` | IO-call conversion via scitex-dev |
+| `all` | mcp plus linter (recommended) |
+| `dev` | pytest, fastmcp, scitex-dev |
+| `docs` | Sphinx plus theme and myst-parser |
+
 ```bash
-pip install scitex-notebook
+uv pip install "scitex-notebook[mcp]"     # MCP server for AI agents
+uv pip install "scitex-notebook[linter]"  # IO-call conversion
+uv pip install -e ".[dev]"                 # editable install
 ```
 
-Optional extras:
+</details>
 
-```bash
-pip install "scitex-notebook[mcp]"     # MCP server for AI agents
-pip install "scitex-notebook[linter]"  # IO-call conversion via scitex-linter
-pip install "scitex-notebook[all]"     # everything
+## Architecture
+
+### 1. Parse and verify
+
+`parse` reads cells while `verify` and `check` scan clew sessions and untracked I/O.
+
+### 2. Compile and convert
+
+`compile` builds the timestamp DAG and `convert` emits topologically-ordered scripts.
+
+### 3. Serve and extend
+
+`mcp_server` exposes notebook tools and the IPython magic tracks live cells.
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 40, 'curve': 'linear'}, 'themeVariables': {'fontSize': '12px'}}}%%
+flowchart LR
+    PARSE[parse module] --> VERIFY[verify and check]
+    VERIFY --> COMPILE[compile DAG]
+    COMPILE --> CONVERT[convert script]
+    COMPILE --> MCP[mcp server]
+    CONVERT --> OUT[runnable outputs]
+    MCP --> OUT
 ```
+
+<p align="center"><sub><b>Figure 2.</b> Module collaboration from parse to served outputs.</sub></p>
 
 ## Four Interfaces
 
@@ -158,44 +221,6 @@ Clew store used by `@scitex.session` and `stx.io`.
 ```bash
 %load_ext scitex_notebook
 %unload_ext scitex_notebook
-```
-
-## Architecture
-
-```
-scitex_notebook/
-├── __init__.py           ← public API: parse, compile, convert, verify, check
-├── __main__.py           ← `python -m scitex_notebook` entry
-├── _parse.py             ← `parse_notebook`, `get_code_cells`, `get_notebook_name`
-├── _verify.py            ← `verify_notebook` (clew session lookups), `check_notebook`
-├── _compile.py           ← `compile_notebook`, `CompiledNotebook`, DAG construction
-├── _convert.py           ← `convert_notebook`: .ipynb → @stx.session .py
-├── _magic.py             ← IPython extension (%load_ext scitex_notebook)
-├── _mcp_server.py        ← FastMCP server: 9 notebook_* tools
-├── _cli/                 ← Click CLI
-│   ├── _main.py          ←   verify-notebook, check-notebook, compile-notebook,
-│   │                         convert-notebook, mcp, list-python-apis, skills
-│   └── _skills.py        ←   `skills list|get|install`
-└── _skills/
-    └── scitex-notebook/  ← bundled agent-facing skill pages
-```
-
-## Demo
-
-```mermaid
-flowchart LR
-    A["experiment.ipynb"] --> B[parse_notebook]
-    B --> C[scitex-clew DB<br/>timestamps]
-    C --> D[compile_notebook<br/>DAG]
-    D --> E["to_mermaid()"]
-    D --> F["to_script()<br/>topologically ordered .py"]
-```
-
-Out-of-order cells in the notebook are re-ordered into a runnable script:
-
-```bash
-$ scitex-notebook compile-notebook experiment.ipynb --format script -o experiment.py
-$ python experiment.py     # runs cleanly, every time
 ```
 
 ## Dependencies

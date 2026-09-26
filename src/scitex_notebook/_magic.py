@@ -54,6 +54,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 # scitex_clew is a hard dependency: this magic is meaningless without it.
 try:
     from scitex_clew._tracker import SessionTracker, set_tracker
@@ -165,15 +169,25 @@ class ScitexNotebookMagics:
     We don't subclass ``IPython.core.magic.Magics`` because we don't expose
     user-callable ``%line`` or ``%%cell`` magics — the entire feature is
     automatic per-cell instrumentation triggered by ``%load_ext``.
+
+    ``_tracker_factory`` is a test seam for the no-mock rule: it
+    substitutes the :class:`SessionTracker` constructed per cell in
+    :meth:`_pre_run_cell` (a callable taking the same keyword arguments).
+    Tests pass an in-memory fake so the suite runs on hosted runners with
+    no Postgres store, substituting no module globals. Production callers
+    (including :func:`load_ipython_extension`) never pass it.
     """
 
-    def __init__(self, shell):
+    def __init__(self, shell, *, _tracker_factory=None):
         self.shell = shell
+        self._tracker_factory = _tracker_factory or SessionTracker
         self.notebook_path = _detect_notebook_path(shell)
         self._exec_index = 0
         self._prev_session: Optional[str] = None
         # Per-cell scratch state populated in pre and consumed in post.
-        self._tracker: Optional[SessionTracker] = None
+        # Typed as Any: production holds a SessionTracker, tests inject an
+        # in-memory fake via the ``_tracker_factory`` seam.
+        self._tracker: Optional[Any] = None
         self._cell_t0: Optional[float] = None
         self._cell_src_hash: Optional[str] = None
         self._cell_loads: set[str] = set()
@@ -249,10 +263,9 @@ class ScitexNotebookMagics:
             }
             self._cell_warnings.append(warn)
             self.warnings.append(warn)
-            print(
+            log.warning(
                 f"[scitex-notebook] WARN cell {self._exec_index}: "
-                f"hidden-state name {name!r} (no defining cell in this run)",
-                file=sys.stderr,
+                f"hidden-state name {name!r} (no defining cell in this run)"
             )
 
         # 2. Data-dependency parent edge — most recent earlier cell that
@@ -282,7 +295,7 @@ class ScitexNotebookMagics:
             "dep_parents": self._cell_dep_parents,
         }
 
-        self._tracker = SessionTracker(
+        self._tracker = self._tracker_factory(
             session_id=sid,
             script_path=str(self.notebook_path) if self.notebook_path else None,
             parent_session=primary_parent_sid,
@@ -324,10 +337,9 @@ class ScitexNotebookMagics:
                 }
                 self._cell_warnings.append(warn)
                 self.warnings.append(warn)
-                print(
+                log.warning(
                     f"[scitex-notebook] WARN cell {self._exec_index}: "
-                    f"out-of-order (execution_count={ec})",
-                    file=sys.stderr,
+                    f"out-of-order (execution_count={ec})"
                 )
 
             # Only register name definitions if the cell ran cleanly —
@@ -368,7 +380,7 @@ def load_ipython_extension(ipython) -> None:
         return  # idempotent
     _INSTALLED = ScitexNotebookMagics(ipython)
     ipython.user_ns["_scitex_nb_magic"] = _INSTALLED
-    print(
+    log.info(
         "[scitex-notebook] cell-level Clew tracking enabled "
         f"(notebook: {_INSTALLED.notebook_path or 'unknown'})"
     )

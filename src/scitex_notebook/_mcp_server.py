@@ -29,7 +29,10 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from fastmcp import FastMCP
+try:
+    from fastmcp import FastMCP
+except ImportError as exc:
+    raise ImportError("needs fastmcp: pip install scitex-notebook[mcp]") from exc
 
 mcp = FastMCP(
     name="scitex-notebook",
