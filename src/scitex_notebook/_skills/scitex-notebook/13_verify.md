@@ -6,18 +6,18 @@ tags: [scitex-notebook-verify, scitex-notebook]
 ---
 
 
-# stx.notebook — Verification
+# Verification
 
-Two functions cover notebook reproducibility: `verify_notebook` checks clew DB session results, and `check_notebook` scans cell source for untracked IO.
+Two functions cover notebook reproducibility: `verify` / `verify_notebook` checks clew DB session results, and `check` / `check_notebook` scans cell source for untracked IO.
 
-## verify_notebook
+## verify / verify_notebook
 
-Find all clew sessions associated with the notebook and run L1 (cache) verification on each.
+Find all clew sessions associated with the notebook and run L1 (cache) verification on each. Optional `db=` and `verify_run_fn=` keyword arguments accept pre-resolved clew handles for testability.
 
 ```python
-from scitex.notebook import verify_notebook
+from scitex_notebook import verify, verify_notebook
 
-results = verify_notebook("experiment.ipynb")
+results = verify("experiment.ipynb")
 # [
 #   {"session_id": "sess-001", "status": "verified", "is_verified": True,  "started_at": "2024-01-15 10:30:45"},
 #   {"session_id": "sess-002", "status": "stale",    "is_verified": False, "started_at": "2024-01-15 10:31:12"},
@@ -29,14 +29,14 @@ A session is associated with a notebook when its clew `metadata.notebook_path` o
 
 `status` comes from `scitex.clew.verify_run()`. Typical values: `"verified"`, `"stale"`, `"missing"`, `"error"`.
 
-## check_notebook
+## check / check_notebook
 
 Scan code cells for `stx.io.load()` / `stx.io.save()` calls that are NOT inside an `@stx.session` function.
 
 ```python
-from scitex.notebook import check_notebook
+from scitex_notebook import check, check_notebook
 
-issues = check_notebook("experiment.ipynb")
+issues = check("experiment.ipynb")
 # [
 #   {"index": 3, "has_load": True, "has_save": False, "has_session": False},
 #   {"index": 7, "has_load": False, "has_save": True,  "has_session": False},

@@ -14,7 +14,18 @@ scitex-notebook verify-notebook  experiment.ipynb     # check clew session resul
 scitex-notebook check-notebook   experiment.ipynb     # find untracked scitex.io calls
 scitex-notebook compile-notebook experiment.ipynb --format mermaid
 scitex-notebook convert-notebook experiment.ipynb --mode unified -o exp.py
+scitex-notebook --help-recursive                      # full reference
 ```
+
+## IPython magic
+
+```python
+%load_ext scitex_notebook          # one line at notebook top
+```
+
+After loading, every executed cell is analysed at runtime for hidden-state
+leaks, out-of-order execution, and untracked I/O — all recorded in the
+same Clew DB.
 
 ## Python — same surface
 

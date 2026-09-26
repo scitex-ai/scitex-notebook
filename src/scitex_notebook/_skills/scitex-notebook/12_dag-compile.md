@@ -6,18 +6,19 @@ tags: [scitex-notebook-dag-compile, scitex-notebook]
 ---
 
 
-# stx.notebook — DAG Compilation
+# DAG Compilation
 
 Jupyter notebooks can be run in arbitrary cell order. SciTeX records actual execution timestamps in the clew DB, then reconstructs the true dependency DAG from shared input/output files.
 
-## compile_notebook
+## compile / compile_notebook
 
 Query the clew DB for all `@scitex.session` runs associated with a notebook, sort by timestamp, and build a dependency DAG.
 
 ```python
-from scitex.notebook import compile_notebook
+from scitex_notebook import compile, compile_notebook
 
-compiled = compile_notebook("experiment.ipynb")
+# Both names resolve to the same function
+compiled = compile("experiment.ipynb")
 # CompiledNotebook(
 #     notebook_path="/.../experiment.ipynb",
 #     execution_order=["sess-001", "sess-002", "sess-003"],
@@ -25,6 +26,9 @@ compiled = compile_notebook("experiment.ipynb")
 #     runs=[{...}, {...}, {...}],
 # )
 ```
+
+An optional `db=` keyword argument accepts a pre-resolved clew DB handle
+for testability: `compile("nb.ipynb", db=fake_db)`.
 
 If no runs are found in the clew DB, returns a `CompiledNotebook` with empty fields.
 

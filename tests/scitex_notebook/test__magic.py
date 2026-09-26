@@ -83,6 +83,32 @@ def shell():
     return _FakeShell()
 
 
+class _FakeTracker:
+    """In-memory ``SessionTracker`` stand-in, injected via the
+    ``_tracker_factory`` seam.
+
+    The real tracker connects to the Postgres ``runs`` store on
+    construction, so behaviour tests would fail on hosted runners with no
+    store. The fake records ``finalize`` calls instead — substituting a
+    collaborator, never a module global (no-mock rule).
+    """
+
+    def __init__(self, session_id, script_path=None, parent_session=None, metadata=None):
+        self.session_id = session_id
+        self.script_path = script_path
+        self.parent_session = parent_session
+        self.metadata = metadata or {}
+        self.finalized: list[dict] = []
+
+    def finalize(self, status="success", exit_code=0):
+        self.finalized.append({"status": status, "exit_code": exit_code})
+
+
+def _magic_with_fake_tracker(shell):
+    """Construct the magic with tracker persistence replaced by a fake."""
+    return ScitexNotebookMagics(shell, _tracker_factory=_FakeTracker)
+
+
 # ---------------------------------------------------------------------------
 # AST helpers
 # ---------------------------------------------------------------------------
@@ -236,7 +262,7 @@ class TestAstLoadsAndStores:
 class TestHiddenStateLeak:
     def test_clean_run_no_warnings(self, shell):
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         m._post_run_cell(_FakePostResult())
         m._pre_run_cell(_FakePreInfo("y = x + 1"))
@@ -249,7 +275,7 @@ class TestHiddenStateLeak:
     def test_leak_when_name_undefined_len_leaks_is_1(self, shell):
         # Arrange
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("y = x + 1"))  # x never defined
         m._post_run_cell(_FakePostResult())
         # Act
@@ -262,7 +288,7 @@ class TestHiddenStateLeak:
     def test_leak_when_name_undefined_leaks_0_name_x(self, shell):
         # Arrange
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("y = x + 1"))  # x never defined
         m._post_run_cell(_FakePostResult())
         # Act
@@ -275,7 +301,7 @@ class TestHiddenStateLeak:
     def test_failed_cell_does_not_register_stores(self, shell):
         """A cell that raises should not declare its stores satisfied."""
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         # Cell 1 attempts to define ``x`` but fails.
         m._pre_run_cell(_FakePreInfo("x = 1/0"))
         m._post_run_cell(_FakePostResult(error=ZeroDivisionError("nope")))
@@ -298,7 +324,7 @@ class TestHiddenStateLeak:
 class TestOutOfOrder:
     def test_linear_run_no_warning(self, shell):
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         m._post_run_cell(_FakePostResult(execution_count=1))
         m._pre_run_cell(_FakePreInfo("y = 2"))
@@ -311,7 +337,7 @@ class TestOutOfOrder:
     def test_skipped_count_warns_len_ooo_is_1(self, shell):
         # Arrange
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         # User re-ran an earlier cell so global counter is 7, but our local
         # is 1 — that mismatch is precisely what we want to catch.
@@ -326,7 +352,7 @@ class TestOutOfOrder:
     def test_skipped_count_warns_ooo_0_execution_count_7(self, shell):
         # Arrange
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         # User re-ran an earlier cell so global counter is 7, but our local
         # is 1 — that mismatch is precisely what we want to catch.
@@ -342,7 +368,7 @@ class TestOutOfOrder:
         """Some IPython versions/results don't expose execution_count;
         absence must not create a false-positive warning."""
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         m._post_run_cell(_FakePostResult(execution_count=None))
         # Act
@@ -359,7 +385,7 @@ class TestOutOfOrder:
 class TestDependencyEdge:
     def test_no_dep_means_independent_cell(self, shell):
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         m._post_run_cell(_FakePostResult())
         # First cell has no parent — the metadata must record an empty list.
@@ -376,7 +402,7 @@ class TestDependencyEdge:
     def test_redefining_name_shifts_parent_len_m_cell_dep_parents_is_1(self, shell):
         # Arrange
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         m._post_run_cell(_FakePostResult())
         m._pre_run_cell(_FakePreInfo("x = 2"))  # redefine x
@@ -393,7 +419,7 @@ class TestDependencyEdge:
     ):
         # Arrange
         # Arrange
-        m = ScitexNotebookMagics(shell)
+        m = _magic_with_fake_tracker(shell)
         m._pre_run_cell(_FakePreInfo("x = 1"))
         m._post_run_cell(_FakePostResult())
         m._pre_run_cell(_FakePreInfo("x = 2"))  # redefine x
@@ -414,7 +440,7 @@ class TestDependencyEdge:
 def test_warnings_summary_aggregates_kinds_summary_n_cells_executed_1(shell):
     # Arrange
     # Arrange
-    m = ScitexNotebookMagics(shell)
+    m = _magic_with_fake_tracker(shell)
     m._pre_run_cell(_FakePreInfo("y = x + 1"))  # leak
     m._post_run_cell(_FakePostResult(execution_count=99))  # OOE
     # Act
@@ -428,7 +454,7 @@ def test_warnings_summary_aggregates_kinds_summary_n_cells_executed_1(shell):
 def test_warnings_summary_aggregates_kinds_summary_n_warnings_2(shell):
     # Arrange
     # Arrange
-    m = ScitexNotebookMagics(shell)
+    m = _magic_with_fake_tracker(shell)
     m._pre_run_cell(_FakePreInfo("y = x + 1"))  # leak
     m._post_run_cell(_FakePostResult(execution_count=99))  # OOE
     # Act
@@ -442,7 +468,7 @@ def test_warnings_summary_aggregates_kinds_summary_n_warnings_2(shell):
 def test_warnings_summary_aggregates_kinds_summary_by_kind_hidden_state_leak_1(shell):
     # Arrange
     # Arrange
-    m = ScitexNotebookMagics(shell)
+    m = _magic_with_fake_tracker(shell)
     m._pre_run_cell(_FakePreInfo("y = x + 1"))  # leak
     m._post_run_cell(_FakePostResult(execution_count=99))  # OOE
     # Act
@@ -458,7 +484,7 @@ def test_warnings_summary_aggregates_kinds_summary_by_kind_out_of_order_executio
 ):
     # Arrange
     # Arrange
-    m = ScitexNotebookMagics(shell)
+    m = _magic_with_fake_tracker(shell)
     m._pre_run_cell(_FakePreInfo("y = x + 1"))  # leak
     m._post_run_cell(_FakePostResult(execution_count=99))  # OOE
     # Act
