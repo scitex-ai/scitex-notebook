@@ -169,15 +169,25 @@ class ScitexNotebookMagics:
     We don't subclass ``IPython.core.magic.Magics`` because we don't expose
     user-callable ``%line`` or ``%%cell`` magics — the entire feature is
     automatic per-cell instrumentation triggered by ``%load_ext``.
+
+    ``_tracker_factory`` is a test seam for the no-mock rule: it
+    substitutes the :class:`SessionTracker` constructed per cell in
+    :meth:`_pre_run_cell` (a callable taking the same keyword arguments).
+    Tests pass an in-memory fake so the suite runs on hosted runners with
+    no Postgres store, substituting no module globals. Production callers
+    (including :func:`load_ipython_extension`) never pass it.
     """
 
-    def __init__(self, shell):
+    def __init__(self, shell, *, _tracker_factory=None):
         self.shell = shell
+        self._tracker_factory = _tracker_factory or SessionTracker
         self.notebook_path = _detect_notebook_path(shell)
         self._exec_index = 0
         self._prev_session: Optional[str] = None
         # Per-cell scratch state populated in pre and consumed in post.
-        self._tracker: Optional[SessionTracker] = None
+        # Typed as Any: production holds a SessionTracker, tests inject an
+        # in-memory fake via the ``_tracker_factory`` seam.
+        self._tracker: Optional[Any] = None
         self._cell_t0: Optional[float] = None
         self._cell_src_hash: Optional[str] = None
         self._cell_loads: set[str] = set()
@@ -285,7 +295,7 @@ class ScitexNotebookMagics:
             "dep_parents": self._cell_dep_parents,
         }
 
-        self._tracker = SessionTracker(
+        self._tracker = self._tracker_factory(
             session_id=sid,
             script_path=str(self.notebook_path) if self.notebook_path else None,
             parent_session=primary_parent_sid,
