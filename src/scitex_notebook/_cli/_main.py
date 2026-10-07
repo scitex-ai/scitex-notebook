@@ -478,13 +478,14 @@ def mcp_install(as_json, dry_run, yes):
     click.echo("  scitex-notebook mcp list-tools")
 
 
-# §1a: install-shell-completion + print-shell-completion (canonical leaves)
-try:
-    from scitex_dev._cli._completion import attach_shell_completion
+# Fleet standard completion drop-in v1 (`completion install` / `status`,
+# plus `install-shell-completion` / `print-shell-completion` shims) — see
+# `_completion.py`. Owns the `completion` name, so scitex-dev's rc-appending
+# variant must NOT be attached (it would collide on that name and reintroduce
+# the rc-edit path this contract deletes).
+from ._completion import register_completion_commands
 
-    attach_shell_completion(cli, prog_name="scitex-notebook")
-except ImportError:
-    pass
+register_completion_commands(cli)
 
 
 if __name__ == "__main__":
